@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6f1e8;
+  --foreground: #23312e;
+  --surface: rgba(255, 251, 247, 0.74);
+  --surface-strong: rgba(255, 251, 247, 0.94);
+  --muted: #69756f;
+  --line: rgba(90, 109, 102, 0.18);
+  --sage: #8ba28f;
+  --eucalyptus: #45645e;
+  --amber: #c58d4e;
+  --success: #6a9270;
+  --shadow: 0 20px 60px rgba(57, 74, 67, 0.12);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background:
+    radial-gradient(circle at top left, rgba(214, 228, 216, 0.9), transparent 34%),
+    radial-gradient(circle at top right, rgba(240, 220, 195, 0.72), transparent 32%),
+    linear-gradient(180deg, #fbf7f1 0%, #f4eee6 100%);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), sans-serif;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.ambient-shell {
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.45)),
+    linear-gradient(180deg, rgba(255, 252, 248, 0.85), rgba(244, 238, 229, 0.66));
+  backdrop-filter: blur(28px);
+}
+
+.surface-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.surface-panel-strong {
+  background: var(--surface-strong);
+  border: 1px solid rgba(89, 109, 101, 0.12);
+  box-shadow: var(--shadow);
+}
+
+.display-face {
+  font-family: var(--font-display), serif;
+}
+
+.text-muted {
+  color: var(--muted);
+}
+
+.gradient-stroke {
+  border-image: linear-gradient(135deg, rgba(139, 162, 143, 0.72), rgba(197, 141, 78, 0.6)) 1;
+}
