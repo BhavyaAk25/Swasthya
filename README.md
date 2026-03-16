@@ -1,6 +1,6 @@
 # Swasthya
 
-Swasthya is a mobile-first live wellness coach built for the Gemini Live Agent Challenge. It combines conversational coaching, camera-based meal analysis, squat tracking, and a Gemini Live recovery call into one focused product.
+Swasthya is a mobile-first live wellness coach built for the Gemini Live Agent Challenge. It combines conversational coaching, camera-based meal analysis, squat tracking, daily nutrition logging, and a Gemini Live recovery call into one focused product.
 
 ## Problem
 
@@ -24,7 +24,9 @@ The goal is not a broad health super-app. The goal is one polished, believable l
 
 ## Core Experience
 
+- Start with a premium onboarding flow that sets goals, training split, and recovery time
 - Log meals from the camera with Gemini-based calorie and protein estimates
+- Keep a daily calories/protein log and export it as CSV
 - Type naturally to a coach for workout, recovery, or meal help
 - Track squat reps from the laptop camera with visible body keypoints
 - Start a Gemini Live voice recovery session with microphone input and spoken output
@@ -41,11 +43,15 @@ The goal is not a broad health super-app. The goal is one polished, believable l
 
 ```mermaid
 flowchart TD
-    UI["Next.js mobile-first web app"] --> API["App API routes"]
-    UI --> Live["Gemini Live browser session"]
-    UI --> Pose["MediaPipe squat tracker"]
-    API --> Core["Gemini core models"]
-    API --> Store["Memory store or Firestore"]
+    User["User on laptop or phone"] --> UI["Next.js app UI"]
+    UI --> Coach["Coach chat + onboarding state"]
+    UI --> Meal["Meal camera capture"]
+    UI --> Pose["Browser MediaPipe squat tracker"]
+    UI --> Live["Browser Gemini Live session"]
+    Coach --> API["Next.js API routes"]
+    Meal --> API
+    API --> Core["Gemini core models for chat + meal analysis"]
+    API --> Store["Demo store or Firestore persistence"]
     API --> Token["Ephemeral Live token bootstrap"]
     Token --> Live
 ```
@@ -53,7 +59,7 @@ flowchart TD
 ### Main Components
 
 - `apps/web/src/components/swasthya-app.tsx`
-  The full mobile-first client experience, including chat, meal camera flow, squat tracker, and live session overlay.
+  The full mobile-first client experience, including the start screen, onboarding, meal camera flow, squat tracker, daily logs, and live session overlay.
 - `apps/web/src/lib/server/gemini.ts`
   Gemini meal parsing, coach response generation, and live model configuration.
 - `apps/web/src/app/api/live/session/route.ts`
@@ -69,7 +75,16 @@ flowchart TD
 - Framer Motion
 - Gemini via `@google/genai`
 - MediaPipe pose tracking
+- Cloud Run deployment target
 - Optional Firestore persistence
+
+## What Judges Can Test
+
+- Meal camera capture and Gemini-based food analysis
+- Natural-language coach chat for meals, workouts, and recovery
+- Laptop-camera squat rep counting with visible body keypoints
+- Gemini Live recovery voice session with microphone input and spoken output
+- Daily calorie and protein logging with CSV export
 
 ## Setup
 
@@ -97,11 +112,13 @@ GOOGLE_GENAI_USE_VERTEXAI=false
 GOOGLE_CLOUD_PROJECT=swasthya-490318
 GOOGLE_CLOUD_LOCATION=us-central1
 SWASTHYA_STORE=memory
+NEXT_PUBLIC_SWASTHYA_SHEETS_URL=
 ```
 
 Notes:
 - `SWASTHYA_STORE=memory` is the fastest local demo mode
 - switch to `SWASTHYA_STORE=firestore` only if Firestore credentials are ready
+- leave `NEXT_PUBLIC_SWASTHYA_SHEETS_URL` blank unless you want the optional sheet button enabled
 
 ### 3. Run locally
 
@@ -137,12 +154,36 @@ Required Vercel environment variables:
 
 For hackathon submission proof, deploy the same app to Google Cloud Run and optionally back it with Firestore.
 
+Example Cloud Run deploy:
+
+```bash
+cd apps/web
+gcloud run deploy swasthya \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars="GEMINI_API_KEY=YOUR_KEY,GOOGLE_GENAI_USE_VERTEXAI=false,GOOGLE_CLOUD_PROJECT=swasthya-490318,GOOGLE_CLOUD_LOCATION=us-central1,SWASTHYA_STORE=memory"
+```
+
+If you switch to Firestore later, change:
+
+```bash
+SWASTHYA_STORE=firestore
+```
+
+## Findings and Learnings
+
+- Live voice works best as a browser-direct Gemini Live session with ephemeral token bootstrap, not a fake text-to-speech overlay.
+- Meal logging needs both multimodal capture and natural-language fallback to feel believable in a real demo.
+- Squat tracking is much more stable when rep counting uses a phase model instead of a single threshold flip.
+- A focused mobile-first flow performs better than a dashboard-heavy wellness app for this challenge.
+
 ## Why It Fits The Challenge
 
 - Uses Gemini for multimodal meal understanding and conversational coaching
 - Uses Gemini Live for the voice recovery session
 - Delivers a live-agent interaction rather than a passive chatbot
-- Can be hosted on Google Cloud for challenge compliance
+- Runs on Google Cloud Run for challenge compliance
 
 ## Notes
 

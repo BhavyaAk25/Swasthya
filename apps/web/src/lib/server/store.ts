@@ -1,6 +1,12 @@
 import { addMinutes } from "date-fns";
 
-import { adaptSession, appendMessage, buildStateFromOnboarding, createInitialState } from "@/lib/server/demo-state";
+import {
+  adaptSession,
+  appendMessage,
+  buildStateFromOnboarding,
+  createInitialState,
+  getScheduledRecoveryDate,
+} from "@/lib/server/demo-state";
 import { isFirestoreEnabled, readFirestoreState, writeFirestoreState } from "@/lib/server/firestore";
 import {
   analyzeMealWithGemini,
@@ -12,6 +18,7 @@ import {
 import type {
   AppState,
   CoachAction,
+  DailyLog,
   OnboardingInput,
   TrackedWorkoutPayload,
   WorkoutConstraint,
@@ -30,17 +37,85 @@ function getStateContainer() {
   return global.__swasthyaState;
 }
 
+function ensureDailyLogs(state: AppState) {
+  const existing = new Map<string, DailyLog>();
+
+  for (const meal of state.mealLogs) {
+    const date = meal.timestamp.slice(0, 10);
+    const current = existing.get(date) ?? {
+      date,
+      caloriesEstimate: 0,
+      proteinEstimate: 0,
+      mealsLogged: 0,
+    };
+
+    current.caloriesEstimate += meal.caloriesEstimate;
+    current.proteinEstimate += meal.proteinEstimate;
+    current.mealsLogged += 1;
+    existing.set(date, current);
+  }
+
+  const today = state.summary.date;
+  const todayLog = existing.get(today) ?? {
+    date: today,
+    caloriesEstimate: state.summary.caloriesEstimate,
+    proteinEstimate: state.summary.proteinEstimate,
+    mealsLogged: state.summary.mealsLogged,
+  };
+
+  todayLog.caloriesEstimate = state.summary.caloriesEstimate;
+  todayLog.proteinEstimate = state.summary.proteinEstimate;
+  todayLog.mealsLogged = state.summary.mealsLogged;
+  existing.set(today, todayLog);
+
+  state.dailyLogs = Array.from(existing.values()).sort((left, right) => right.date.localeCompare(left.date));
+}
+
+function normalizeState(state: AppState) {
+  if (!state.dailyLogs) {
+    state.dailyLogs = [];
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (state.summary.date !== today) {
+    const coachNote = state.summary.coachNote;
+    const existing = (state.dailyLogs ?? []).find((log) => log.date === today);
+    state.summary = {
+      date: today,
+      caloriesEstimate: existing?.caloriesEstimate ?? 0,
+      proteinEstimate: existing?.proteinEstimate ?? 0,
+      mealsLogged: existing?.mealsLogged ?? 0,
+      workoutStatus: "planned",
+      recoveryStatus: "scheduled",
+      adherenceScore: state.summary.adherenceScore,
+      coachNote,
+    };
+  }
+
+  if (state.user && state.recoverySession && state.recoverySession.status === "scheduled") {
+    state.recoverySession.scheduledFor = getScheduledRecoveryDate(
+      state.user.recoveryTime,
+      state.user.timezone,
+    ).toISOString();
+    state.recoverySession.description = `A short guided recovery drop scheduled for ${state.user.recoveryTime}.`;
+  }
+
+  ensureDailyLogs(state);
+  return state;
+}
+
 async function readState() {
   if (isFirestoreEnabled()) {
     const state = await readFirestoreState();
-    global.__swasthyaState = state;
-    return state;
+    global.__swasthyaState = normalizeState(state);
+    return global.__swasthyaState;
   }
 
-  return getStateContainer();
+  return normalizeState(getStateContainer());
 }
 
 async function writeState(state: AppState) {
+  normalizeState(state);
   global.__swasthyaState = state;
 
   if (isFirestoreEnabled()) {
@@ -128,6 +203,7 @@ async function logTextMealFromMessage(message: string) {
   state.summary.caloriesEstimate += parsed.caloriesEstimate;
   state.summary.proteinEstimate += parsed.proteinEstimate;
   state.summary.mealsLogged += 1;
+  ensureDailyLogs(state);
   state.coachMemory.lastMealContext = `${parsed.foods.join(", ")} logged from chat.`;
   appendMessage(
     state,
@@ -155,6 +231,7 @@ export async function logMeal(clarification: string) {
   state.summary.caloriesEstimate += draft.caloriesEstimate;
   state.summary.proteinEstimate += draft.proteinEstimate;
   state.summary.mealsLogged += 1;
+  ensureDailyLogs(state);
   state.coachMemory.lastMealContext = `${draft.foods.join(", ")} logged with ${draft.confidence} confidence.`;
   state.currentMealDraft = null;
 
@@ -268,7 +345,11 @@ export async function recoveryAction(action: "done" | "snooze" | "reschedule" | 
 
   if (action === "reschedule") {
     recoverySession.status = "scheduled";
-    recoverySession.scheduledFor = addMinutes(new Date(), 90).toISOString();
+    recoverySession.scheduledFor = getScheduledRecoveryDate(
+      state.user.recoveryTime,
+      state.user.timezone,
+      addMinutes(new Date(), 90),
+    ).toISOString();
     state.summary.recoveryStatus = "scheduled";
     appendMessage(state, "coach", "recovery", "Recovery moved later.");
   }

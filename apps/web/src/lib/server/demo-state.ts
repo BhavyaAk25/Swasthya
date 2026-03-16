@@ -1,10 +1,11 @@
-import { addMinutes, formatISO } from "date-fns";
+import { formatISO } from "date-fns";
 
 import type {
   AppState,
   ChatKind,
   ChatMessage,
   CoachMemory,
+  DailyLog,
   DailySummary,
   GoalTone,
   LiveSessionPayload,
@@ -42,6 +43,87 @@ function createSummary(): DailySummary {
     adherenceScore: 84,
     coachNote: "Show me your meal, tell me how training feels, or start your recovery when you are ready.",
   };
+}
+
+function createDailyLog(date: string): DailyLog {
+  return {
+    date,
+    caloriesEstimate: 0,
+    proteinEstimate: 0,
+    mealsLogged: 0,
+  };
+}
+
+function getDateParts(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+
+  const values = Object.fromEntries(
+    formatter
+      .formatToParts(date)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return {
+    year: Number(values.year),
+    month: Number(values.month),
+    day: Number(values.day),
+    hour: Number(values.hour),
+    minute: Number(values.minute),
+    second: Number(values.second),
+  };
+}
+
+function getTimeZoneOffsetMs(timeZone: string, date: Date) {
+  const parts = getDateParts(date, timeZone);
+  const utcGuess = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
+  return utcGuess - date.getTime();
+}
+
+function zonedTimeToUtc(
+  timeZone: string,
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+) {
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  const offset = getTimeZoneOffsetMs(timeZone, utcGuess);
+  return new Date(utcGuess.getTime() - offset);
+}
+
+export function getScheduledRecoveryDate(recoveryTime: string, timeZone: string, now = new Date()) {
+  const [hourString, minuteString] = recoveryTime.split(":");
+  const hour = Number(hourString);
+  const minute = Number(minuteString);
+  const current = getDateParts(now, timeZone);
+
+  let scheduled = zonedTimeToUtc(timeZone, current.year, current.month, current.day, hour, minute);
+
+  if (scheduled.getTime() <= now.getTime()) {
+    const tomorrow = new Date(Date.UTC(current.year, current.month - 1, current.day));
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+    scheduled = zonedTimeToUtc(
+      timeZone,
+      tomorrow.getUTCFullYear(),
+      tomorrow.getUTCMonth() + 1,
+      tomorrow.getUTCDate(),
+      hour,
+      minute,
+    );
+  }
+
+  return scheduled;
 }
 
 function protocolCopyForTone(tone: GoalTone) {
@@ -109,8 +191,8 @@ function createPlan(workoutSplit: string): WorkoutPlan {
   };
 }
 
-function createRecoverySession(recoveryTime: string): RecoverySession {
-  const scheduledFor = addMinutes(new Date(), 20);
+function createRecoverySession(recoveryTime: string, timeZone: string): RecoverySession {
+  const scheduledFor = getScheduledRecoveryDate(recoveryTime, timeZone);
 
   return {
     id: "recovery-1",
@@ -159,10 +241,13 @@ function seedMessages(name: string): ChatMessage[] {
 }
 
 export function createInitialState(): AppState {
+  const summary = createSummary();
+
   return {
     onboardingCompleted: false,
     user: null,
-    summary: createSummary(),
+    summary,
+    dailyLogs: [createDailyLog(summary.date)],
     mealLogs: [],
     currentMealDraft: null,
     workoutPlan: null,
@@ -179,6 +264,7 @@ export function createInitialState(): AppState {
 }
 
 export function buildStateFromOnboarding(input: OnboardingInput): AppState {
+  const timeZone = input.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const user: UserProfile = {
     id: "demo-user",
     displayName: input.displayName,
@@ -188,7 +274,7 @@ export function buildStateFromOnboarding(input: OnboardingInput): AppState {
     trainingDays: input.trainingDays,
     proteinFocus: input.proteinFocus,
     recoveryTime: input.recoveryTime,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    timezone: timeZone,
     tone: input.tone,
   };
 
@@ -200,10 +286,11 @@ export function buildStateFromOnboarding(input: OnboardingInput): AppState {
     onboardingCompleted: true,
     user,
     summary,
+    dailyLogs: [createDailyLog(summary.date)],
     mealLogs: [],
     currentMealDraft: null,
     workoutPlan: createPlan(input.workoutSplit),
-    recoverySession: createRecoverySession(input.recoveryTime),
+    recoverySession: createRecoverySession(input.recoveryTime, timeZone),
     coachMemory: createCoachMemory(input.tone),
     liveSession: createLiveSession(input.displayName),
     messages: seedMessages(input.displayName),

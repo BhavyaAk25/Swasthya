@@ -10,6 +10,7 @@ const onboardingSchema = z.object({
   trainingDays: z.number().min(2).max(6),
   proteinFocus: z.string().min(1),
   recoveryTime: z.string().regex(/^\d{2}:\d{2}$/),
+  timezone: z.string().min(1).optional(),
   tone: z.enum(["balanced", "performance", "recovery"]),
 });
 

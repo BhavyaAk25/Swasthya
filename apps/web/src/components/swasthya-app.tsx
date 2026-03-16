@@ -3,9 +3,12 @@
 import { GoogleGenAI, Modality, type LiveServerMessage, type Session } from "@google/genai";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowRight,
   Camera,
   Check,
+  Download,
   Dumbbell,
+  ExternalLink,
   LoaderCircle,
   Mic,
   RefreshCcw,
@@ -24,7 +27,7 @@ import type {
   LiveBootstrapPayload,
   OnboardingInput,
 } from "@/lib/types";
-import { cn, minutesUntil } from "@/lib/utils";
+import { cn, formatCountdown, formatDateLabel, minutesUntil } from "@/lib/utils";
 
 type CameraMode = "meal" | "workout" | null;
 
@@ -34,12 +37,38 @@ type CoachEnvelope = {
 };
 
 const goalOptions = [
-  "Build calm consistency",
-  "Get stronger without overcomplicating it",
-  "Recover and stay on track",
+  {
+    label: "Build consistency",
+    description: "Steady meals, training, and recovery without overthinking the day.",
+    tone: "balanced" as const,
+  },
+  {
+    label: "Get stronger",
+    description: "Clear workouts, better adherence, and simple progress you can repeat.",
+    tone: "performance" as const,
+  },
+  {
+    label: "Recover better",
+    description: "Less friction, more calm, and stronger evening recovery habits.",
+    tone: "recovery" as const,
+  },
 ];
 
-const splitOptions = ["Minimalist 3-Day", "Upper / Lower", "Full Body"];
+const splitOptions = [
+  {
+    label: "Minimalist 3-Day",
+    description: "Three focused sessions for the cleanest demo path.",
+  },
+  {
+    label: "Upper / Lower",
+    description: "A classic split with simple alternation and structure.",
+  },
+  {
+    label: "Full Body",
+    description: "A compact all-body approach for busy weeks.",
+  },
+];
+const sheetsUrl = process.env.NEXT_PUBLIC_SWASTHYA_SHEETS_URL ?? "";
 
 async function fetchEnvelope<T>(url: string, options?: RequestInit): Promise<ApiResponse<T>> {
   try {
@@ -75,6 +104,26 @@ async function fetchEnvelope<T>(url: string, options?: RequestInit): Promise<Api
       error: "Unable to reach the server.",
     };
   }
+}
+
+function downloadDailyLogsCsv(state: AppState) {
+  const rows = [
+    ["Date", "Calories", "Protein (g)", "Meals logged"],
+    ...state.dailyLogs.map((log) => [
+      log.date,
+      log.caloriesEstimate.toString(),
+      log.proteinEstimate.toString(),
+      log.mealsLogged.toString(),
+    ]),
+  ];
+  const csv = rows.map((row) => row.map((value) => `"${value.replaceAll("\"", "\"\"")}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `swasthya-daily-logs-${state.summary.date}.csv`;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 function Surface({
@@ -124,7 +173,10 @@ function SetupScreen({
     <Surface className="space-y-5 rounded-[32px] bg-[linear-gradient(145deg,rgba(255,250,246,0.94),rgba(228,236,231,0.72))]">
       <div>
         <div className="text-[11px] uppercase tracking-[0.28em] text-[var(--muted)]">Swasthya</div>
-        <div className="display-face mt-3 text-[2.5rem] leading-none text-[var(--foreground)]">Set the day up fast.</div>
+        <div className="display-face mt-3 text-[2.4rem] leading-none text-[var(--foreground)]">Set your coaching style.</div>
+        <p className="mt-3 max-w-[28ch] text-sm leading-6 text-[var(--muted)]">
+          Pick a clear direction, the training split you want, and the recovery time you want the coach to protect.
+        </p>
       </div>
       <div className="space-y-4">
         <Field label="Name">
@@ -138,37 +190,49 @@ function SetupScreen({
           <div className="grid gap-2">
             {goalOptions.map((goal) => (
               <button
-                key={goal}
+                key={goal.label}
                 type="button"
-                onClick={() => setForm((current) => ({ ...current, goal }))}
+                onClick={() => setForm((current) => ({ ...current, goal: goal.label, tone: goal.tone }))}
                 className={cn(
-                  "rounded-[22px] border px-4 py-3 text-left text-sm transition",
-                  form.goal === goal ? "border-transparent bg-[rgba(69,100,94,0.12)]" : "border-[var(--line)] bg-white/75",
+                  "rounded-[22px] border px-4 py-3 text-left transition",
+                  form.goal === goal.label
+                    ? "border-transparent bg-[rgba(69,100,94,0.12)] shadow-[inset_0_0_0_1px_rgba(69,100,94,0.06)]"
+                    : "border-[var(--line)] bg-white/75",
                 )}
               >
-                {goal}
+                <div className="text-sm font-semibold text-[var(--foreground)]">{goal.label}</div>
+                <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{goal.description}</div>
               </button>
             ))}
           </div>
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-4">
           <Field label="Workout">
-            <select
-              value={form.workoutSplit}
-              onChange={(event) => setForm((current) => ({ ...current, workoutSplit: event.target.value }))}
-              className="w-full rounded-[22px] border border-[var(--line)] bg-white/85 px-4 py-4 outline-none"
-            >
+            <div className="grid gap-2">
               {splitOptions.map((split) => (
-                <option key={split}>{split}</option>
+                <button
+                  key={split.label}
+                  type="button"
+                  onClick={() => setForm((current) => ({ ...current, workoutSplit: split.label }))}
+                  className={cn(
+                    "rounded-[22px] border px-4 py-3 text-left transition",
+                    form.workoutSplit === split.label
+                      ? "border-transparent bg-[rgba(69,100,94,0.12)] shadow-[inset_0_0_0_1px_rgba(69,100,94,0.06)]"
+                      : "border-[var(--line)] bg-white/75",
+                  )}
+                >
+                  <div className="text-sm font-semibold text-[var(--foreground)]">{split.label}</div>
+                  <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{split.description}</div>
+                </button>
               ))}
-            </select>
+            </div>
           </Field>
-          <Field label="Recovery">
+          <Field label="Recovery time">
             <input
               type="time"
               value={form.recoveryTime}
               onChange={(event) => setForm((current) => ({ ...current, recoveryTime: event.target.value }))}
-              className="w-full rounded-[22px] border border-[var(--line)] bg-white/85 px-4 py-4 outline-none"
+              className="w-full rounded-[22px] border border-[var(--line)] bg-white/85 px-4 py-4 text-[var(--foreground)] outline-none"
             />
           </Field>
         </div>
@@ -185,6 +249,54 @@ function SetupScreen({
   );
 }
 
+function WelcomeScreen({ onStart }: { onStart: () => void }) {
+  return (
+    <Surface className="overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,rgba(255,250,246,0.96),rgba(225,234,228,0.78))] p-0">
+      <div className="relative overflow-hidden rounded-[32px] px-6 py-7">
+        <div className="absolute inset-x-0 top-0 h-44 bg-[radial-gradient(circle_at_top_left,rgba(210,226,219,0.92),transparent_58%),radial-gradient(circle_at_top_right,rgba(250,236,220,0.82),transparent_52%)]" />
+        <div className="relative">
+          <div className="text-[11px] uppercase tracking-[0.28em] text-[var(--muted)]">Swasthya</div>
+          <div className="mt-3 text-sm font-medium text-[var(--muted)]">Your live wellness coach.</div>
+          <div className="display-face mt-4 max-w-[12ch] text-[2.9rem] leading-[0.94] text-[var(--foreground)]">
+            Start your calm comeback.
+          </div>
+          <p className="mt-4 max-w-[30ch] text-sm leading-7 text-[var(--muted)]">
+            A live wellness coach that sees your meals, adapts your training, and guides your recovery without adding
+            noise.
+          </p>
+        </div>
+
+        <div className="relative mt-8 overflow-hidden rounded-[32px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,252,248,0.88),rgba(226,236,230,0.84))] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.52)]">
+          <div className="absolute left-2 top-3 h-28 w-28 rounded-full bg-[radial-gradient(circle,rgba(245,221,196,0.56),rgba(245,221,196,0.04)_72%)] blur-sm" />
+          <div className="absolute right-3 top-4 h-24 w-24 rounded-full bg-[radial-gradient(circle,rgba(186,206,197,0.52),rgba(186,206,197,0.04)_72%)] blur-sm" />
+          <div className="absolute inset-x-6 bottom-2 h-24 rounded-[32px] bg-[radial-gradient(ellipse_at_bottom,rgba(196,214,206,0.54),rgba(196,214,206,0.03)_74%)]" />
+          <div className="relative flex h-[24rem] items-end justify-center overflow-hidden rounded-[28px] bg-[linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0.05))]">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,248,241,0.46),transparent_44%),radial-gradient(circle_at_top_right,rgba(220,233,227,0.34),transparent_42%)]" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent,rgba(214,226,220,0.46))]" />
+            <div className="pointer-events-none absolute inset-x-12 bottom-5 h-12 rounded-[999px] bg-[radial-gradient(ellipse_at_center,rgba(121,149,138,0.22),rgba(121,149,138,0.02)_72%)] blur-md" />
+            <div className="pointer-events-none absolute left-1/2 top-10 h-40 w-[72%] -translate-x-1/2 rounded-[999px] bg-[radial-gradient(circle,rgba(255,255,255,0.36),rgba(255,255,255,0.02)_76%)] blur-2xl" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/hero-welcome-coach.png"
+              alt="Illustrated fitness coach"
+              className="relative z-10 mb-1 h-auto max-h-[92%] w-[88%] object-contain drop-shadow-[0_18px_28px_rgba(78,97,88,0.08)]"
+            />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onStart}
+          className="mt-6 flex w-full items-center justify-center gap-3 rounded-full bg-[var(--foreground)] px-5 py-4 text-sm font-semibold text-white"
+        >
+          Start Journey
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+    </Surface>
+  );
+}
+
 function Field({
   label,
   children,
@@ -194,6 +306,54 @@ function Field({
       <div className="text-[11px] uppercase tracking-[0.28em] text-[var(--muted)]">{label}</div>
       {children}
     </label>
+  );
+}
+
+function DailyLogCard({ state }: { state: AppState }) {
+  return (
+    <Surface className="space-y-4 bg-white/84">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Daily log</div>
+          <div className="mt-1 text-lg font-semibold text-[var(--foreground)]">Calories you can show clearly</div>
+        </div>
+        <div className="rounded-full bg-[rgba(139,162,143,0.14)] px-3 py-2 text-xs font-semibold text-[var(--eucalyptus)]">
+          {state.dailyLogs.length} day{state.dailyLogs.length === 1 ? "" : "s"}
+        </div>
+      </div>
+      <div className="space-y-2">
+        {state.dailyLogs.slice(0, 5).map((log) => (
+          <div key={log.date} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-[18px] bg-[rgba(245,241,235,0.9)] px-4 py-3 text-sm">
+            <div>
+              <div className="font-semibold text-[var(--foreground)]">{formatDateLabel(log.date)}</div>
+              <div className="text-[var(--muted)]">{log.mealsLogged} meals logged</div>
+            </div>
+            <div className="text-right text-[var(--foreground)]">{log.caloriesEstimate} cal</div>
+            <div className="text-right text-[var(--muted)]">{log.proteinEstimate}g</div>
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-3">
+        <button
+          type="button"
+          onClick={() => downloadDailyLogsCsv(state)}
+          className="flex items-center justify-center gap-2 rounded-full border border-[var(--line)] bg-white/75 px-4 py-3 text-sm font-semibold text-[var(--foreground)]"
+        >
+          <Download className="h-4 w-4" />
+          Export logs
+        </button>
+        {sheetsUrl ? (
+          <button
+            type="button"
+            onClick={() => window.open(sheetsUrl, "_blank", "noopener,noreferrer")}
+            className="flex items-center justify-center gap-2 rounded-full border border-[var(--line)] bg-white/75 px-4 py-3 text-sm font-semibold text-[var(--foreground)]"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Open sheet
+          </button>
+        ) : null}
+      </div>
+    </Surface>
   );
 }
 
@@ -418,6 +578,7 @@ function parseAudioMimeRate(mimeType?: string) {
 async function playPcmChunk(
   audioContext: AudioContext,
   playbackCursorRef: React.MutableRefObject<number>,
+  playbackSourcesRef: React.MutableRefObject<Set<AudioBufferSourceNode>>,
   base64Data: string,
   mimeType?: string,
 ) {
@@ -442,6 +603,10 @@ async function playPcmChunk(
   const source = audioContext.createBufferSource();
   source.buffer = buffer;
   source.connect(audioContext.destination);
+  playbackSourcesRef.current.add(source);
+  source.onended = () => {
+    playbackSourcesRef.current.delete(source);
+  };
   const startAt = Math.max(audioContext.currentTime, playbackCursorRef.current);
   source.start(startAt);
   playbackCursorRef.current = startAt + buffer.duration;
@@ -477,14 +642,45 @@ function LiveCallOverlay({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const micMeterFrameRef = useRef<number | null>(null);
   const playbackCursorRef = useRef(0);
+  const playbackSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const lastUserTranscriptRef = useRef("");
   const lastCoachTranscriptRef = useRef("");
   const mutedRef = useRef(false);
   const audioEndedRef = useRef(false);
+  const statusRef = useRef(status);
+  const interruptTimeoutRef = useRef<number | null>(null);
+  const [liveNotice, setLiveNotice] = useState<string | null>(null);
 
   useEffect(() => {
     mutedRef.current = muted;
   }, [muted]);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  const interruptPlayback = useCallback((notice?: string) => {
+    playbackCursorRef.current = outputAudioContextRef.current?.currentTime ?? 0;
+    for (const source of playbackSourcesRef.current) {
+      try {
+        source.stop();
+      } catch {
+        // Ignore stop errors for already-finished chunks.
+      }
+    }
+    playbackSourcesRef.current.clear();
+    setStatus("listening");
+
+    if (notice) {
+      setLiveNotice(notice);
+      if (interruptTimeoutRef.current) {
+        window.clearTimeout(interruptTimeoutRef.current);
+      }
+      interruptTimeoutRef.current = window.setTimeout(() => {
+        setLiveNotice(null);
+      }, 1400);
+    }
+  }, []);
 
   const teardownLiveSession = useCallback(() => {
     if (liveSessionRef.current && !audioEndedRef.current) {
@@ -515,6 +711,20 @@ function LiveCallOverlay({
       micMeterFrameRef.current = null;
     }
 
+    if (interruptTimeoutRef.current) {
+      window.clearTimeout(interruptTimeoutRef.current);
+      interruptTimeoutRef.current = null;
+    }
+
+    for (const source of playbackSourcesRef.current) {
+      try {
+        source.stop();
+      } catch {
+        // Ignore stop errors during teardown.
+      }
+    }
+    playbackSourcesRef.current.clear();
+
     micStreamRef.current?.getTracks().forEach((track) => track.stop());
     micStreamRef.current = null;
 
@@ -527,6 +737,7 @@ function LiveCallOverlay({
     setMicLevel(0);
     setHasInputTranscript(false);
     audioEndedRef.current = false;
+    setLiveNotice(null);
   }, []);
 
   useEffect(() => {
@@ -632,6 +843,9 @@ function LiveCallOverlay({
           }
           const rms = Math.sqrt(sumSquares / sampleBuffer.length);
           setMicLevel(Math.min(1, rms * 6));
+          if (!mutedRef.current && statusRef.current === "speaking" && rms > 0.075) {
+            interruptPlayback("Listening now");
+          }
           micMeterFrameRef.current = window.requestAnimationFrame(updateMicMeter);
         };
         micMeterFrameRef.current = window.requestAnimationFrame(updateMicMeter);
@@ -665,8 +879,7 @@ function LiveCallOverlay({
               }
 
               if (serverContent.interrupted) {
-                playbackCursorRef.current = outputContext.currentTime;
-                setStatus("listening");
+                interruptPlayback("Listening now");
               }
 
               if (serverContent.waitingForInput) {
@@ -703,7 +916,13 @@ function LiveCallOverlay({
 
                 if (inlineData?.data) {
                   setStatus("speaking");
-                  void playPcmChunk(outputContext, playbackCursorRef, inlineData.data, inlineData.mimeType);
+                  void playPcmChunk(
+                    outputContext,
+                    playbackCursorRef,
+                    playbackSourcesRef,
+                    inlineData.data,
+                    inlineData.mimeType,
+                  );
                 }
               }
 
@@ -762,7 +981,7 @@ function LiveCallOverlay({
       cancelled = true;
       teardownLiveSession();
     };
-  }, [open, session, teardownLiveSession]);
+  }, [interruptPlayback, open, session, teardownLiveSession]);
 
   useEffect(() => {
     if (!liveSessionRef.current || !open || !muted) {
@@ -820,6 +1039,7 @@ function LiveCallOverlay({
             <div className="mt-4 flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-white/55">
               <span className="rounded-full border border-white/10 px-3 py-1">{status}</span>
               <span className="rounded-full border border-white/10 px-3 py-1">{muted ? "mic muted" : "mic live"}</span>
+              {liveNotice ? <span className="rounded-full border border-white/10 px-3 py-1">{liveNotice}</span> : null}
             </div>
             <div className="mt-4 rounded-[18px] bg-white/8 px-4 py-3">
               <div className="flex items-center justify-between gap-4">
@@ -1051,7 +1271,10 @@ function SquatTrackerOverlay({
   const [error, setError] = useState<string | null>(null);
   const [reps, setReps] = useState(0);
   const [cue, setCue] = useState("Stand tall to begin.");
-  const phaseRef = useRef<"up" | "down">("up");
+  const phaseRef = useRef<"standing" | "descending" | "bottom_reached" | "ascending">("standing");
+  const stableFrameCountRef = useRef(0);
+  const lastAngleRef = useRef<number | null>(null);
+  const repArmedRef = useRef(false);
 
   useEffect(() => {
     if (!open) {
@@ -1071,6 +1294,12 @@ function SquatTrackerOverlay({
     const start = async () => {
       setLoading(true);
       setError(null);
+      setReps(0);
+      setCue("Stand tall to begin.");
+      phaseRef.current = "standing";
+      stableFrameCountRef.current = 0;
+      lastAngleRef.current = null;
+      repArmedRef.current = false;
 
       try {
         const visionBundlePath = "/vendor/mediapipe/vision_bundle.mjs";
@@ -1153,21 +1382,64 @@ function SquatTrackerOverlay({
           if (landmarks?.length) {
             drawPoseOverlay(ctx, canvas.width, canvas.height, landmarks);
             const angle = averageKneeAngle(landmarks);
+            const smoothedAngle =
+              lastAngleRef.current === null ? angle : lastAngleRef.current * 0.7 + angle * 0.3;
+            lastAngleRef.current = smoothedAngle;
 
-            if (angle < 100 && phaseRef.current === "up") {
-              phaseRef.current = "down";
-              setCue("Drive back up.");
+            const standingThreshold = 162;
+            const bottomThreshold = 104;
+            const ascentThreshold = 126;
+            const descentThreshold = 145;
+
+            if (smoothedAngle >= standingThreshold) {
+              stableFrameCountRef.current += 1;
+              if (phaseRef.current === "ascending" && repArmedRef.current && stableFrameCountRef.current >= 3) {
+                phaseRef.current = "standing";
+                repArmedRef.current = false;
+                setReps((current) => current + 1);
+                setCue("Good rep. Reset tall and go again.");
+              } else if (phaseRef.current === "standing") {
+                setCue("Stand tall, then sit back into the squat.");
+              }
+            } else if (smoothedAngle <= bottomThreshold) {
+              stableFrameCountRef.current += 1;
+              if ((phaseRef.current === "descending" || phaseRef.current === "standing") && stableFrameCountRef.current >= 3) {
+                phaseRef.current = "bottom_reached";
+                repArmedRef.current = true;
+                setCue("Depth reached. Drive back up.");
+              }
+            } else if (smoothedAngle < descentThreshold) {
+              stableFrameCountRef.current += 1;
+              if (phaseRef.current === "standing" && stableFrameCountRef.current >= 2) {
+                phaseRef.current = "descending";
+                setCue("Good. Keep sitting lower.");
+              }
+            } else if (smoothedAngle > ascentThreshold && phaseRef.current === "bottom_reached") {
+              stableFrameCountRef.current += 1;
+              if (stableFrameCountRef.current >= 2) {
+                phaseRef.current = "ascending";
+                setCue("Stand tall to finish the rep.");
+              }
+            } else {
+              stableFrameCountRef.current = 0;
+              if (phaseRef.current === "descending") {
+                setCue("Sit a little lower before standing.");
+              } else if (phaseRef.current === "bottom_reached") {
+                setCue("Drive up with control.");
+              } else if (phaseRef.current === "ascending") {
+                setCue("Keep rising. Finish tall.");
+              }
             }
 
-            if (angle > 155 && phaseRef.current === "down") {
-              phaseRef.current = "up";
-              setReps((current) => current + 1);
-              setCue("Good rep. Go again.");
+            if (
+              phaseRef.current === "standing" &&
+              smoothedAngle < standingThreshold &&
+              smoothedAngle > descentThreshold
+            ) {
+              stableFrameCountRef.current = 0;
             }
-
-            if (angle >= 100 && angle <= 155) {
-              setCue("Sit lower, then stand tall.");
-            }
+          } else {
+            stableFrameCountRef.current = 0;
           }
 
           frameRef.current = window.requestAnimationFrame(loop);
@@ -1336,14 +1608,16 @@ export function SwasthyaApp() {
   const [cameraMode, setCameraMode] = useState<CameraMode>(null);
   const [liveOpen, setLiveOpen] = useState(false);
   const [trackerOpen, setTrackerOpen] = useState(false);
+  const [journeyStarted, setJourneyStarted] = useState(false);
   const [form, setForm] = useState<OnboardingInput>({
     displayName: "Bhavya",
-    goal: goalOptions[0],
-    workoutSplit: splitOptions[0],
+    goal: goalOptions[0].label,
+    workoutSplit: splitOptions[0].label,
     trainingDays: 3,
     proteinFocus: "Keep it simple",
     recoveryTime: "21:00",
-    tone: "balanced",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    tone: goalOptions[0].tone,
   });
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -1356,6 +1630,7 @@ export function SwasthyaApp() {
       }
 
       setState(response.data);
+      setJourneyStarted(response.data.onboardingCompleted);
     };
 
     void load();
@@ -1377,7 +1652,7 @@ export function SwasthyaApp() {
       return "Live now";
     }
 
-    return minutes > 0 ? `In ${minutes} min` : "Ready";
+    return formatCountdown(minutes);
   }, [state?.recoverySession]);
 
   async function mutateState<T>(url: string, body?: unknown) {
@@ -1405,6 +1680,9 @@ export function SwasthyaApp() {
     if (data) {
       startTransition(() => {
         setState(data);
+        if (url === "/api/reset" && !data.onboardingCompleted) {
+          setJourneyStarted(false);
+        }
         if (data.currentMealDraft) {
           setClarification(data.currentMealDraft.quickAnswers[0] ?? "");
         }
@@ -1470,7 +1748,7 @@ export function SwasthyaApp() {
           <div className="mb-4 flex items-center justify-between px-1 pt-1">
             <div>
               <div className="text-[11px] uppercase tracking-[0.28em] text-[var(--muted)]">Swasthya</div>
-              <div className="display-face text-2xl">Coach that listens.</div>
+              <div className="display-face text-2xl">Your live wellness coach.</div>
             </div>
             <button
               type="button"
@@ -1482,12 +1760,16 @@ export function SwasthyaApp() {
           </div>
 
           {!state.onboardingCompleted ? (
-            <SetupScreen
-              form={form}
-              setForm={setForm}
-              busy={busy === "/api/onboarding"}
-              onSubmit={() => void loadState("/api/onboarding", form)}
-            />
+            !journeyStarted ? (
+              <WelcomeScreen onStart={() => setJourneyStarted(true)} />
+            ) : (
+              <SetupScreen
+                form={form}
+                setForm={setForm}
+                busy={busy === "/api/onboarding"}
+                onSubmit={() => void loadState("/api/onboarding", form)}
+              />
+            )
           ) : (
             <>
               <div className="grid grid-cols-3 gap-2">
@@ -1547,6 +1829,8 @@ export function SwasthyaApp() {
                     ) : null}
                   </Surface>
                 ) : null}
+
+                <DailyLogCard state={state} />
 
                 {state.messages.map((message) => (
                   <MessageBubble key={message.id} message={message} />

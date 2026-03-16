@@ -44,6 +44,13 @@ export interface DailySummary {
   coachNote: string;
 }
 
+export interface DailyLog {
+  date: string;
+  caloriesEstimate: number;
+  proteinEstimate: number;
+  mealsLogged: number;
+}
+
 export interface MealDraft {
   id: string;
   imageDataUrl: string | null;
@@ -139,6 +146,7 @@ export interface AppState {
   onboardingCompleted: boolean;
   user: UserProfile | null;
   summary: DailySummary;
+  dailyLogs: DailyLog[];
   mealLogs: MealLog[];
   currentMealDraft: MealDraft | null;
   workoutPlan: WorkoutPlan | null;
@@ -155,6 +163,7 @@ export interface OnboardingInput {
   trainingDays: number;
   proteinFocus: string;
   recoveryTime: string;
+  timezone?: string;
   tone: GoalTone;
 }
 
