@@ -1,5 +1,5 @@
-import { SwasthyaApp } from "@/components/swasthya-app";
+import { App } from "@/components/app";
 
-export default function Home() {
-  return <SwasthyaApp />;
+export default function Page() {
+  return <App />;
 }
