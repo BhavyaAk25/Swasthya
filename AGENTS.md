@@ -47,6 +47,12 @@ npm run build
 ```
 Run typecheck and build one after the other (the build regenerates `.next/types`).
 
+## Releasing
+The live site is https://swasthya-wellness.bhavyaak.chatgpt.site (ChatGPT Sites, `project_id` in `.openai/hosting.json`, public audience). **Pushing to GitHub does not update it.** Release in two steps:
+1. Any agent: `npm run release` (secret scan, typecheck, lint, Next build, asset check, `scripts/prepare-sites.mjs`, then a build of the Sites copy in `output/sites/swasthya`), then commit and push `main`.
+2. Codex with the Sites plugin ("publish the Swasthya site"): keep the existing Site and its public audience. Call `get_site` and `create_source_repository_write_credential`, open the existing source with the plugin's `scripts/site-workflow.mjs`, copy in the prepared `output/sites/swasthya` files, package with `commands: [["node", "<plugin-root>/scripts/build-site.mjs"]]` and an absolute `archivePath`, then `save_site_version` + `deploy_site_version`. Never include `.env.local` or keys. Verify that the live `/api/status` returns a `provider` field (new build) and that the page loads.
+- Only if dependencies changed: refresh the Sites lockfile and install, as described in `docs/SITES.md`.
+
 ## Layout
 - `apps/web/src/components/app.tsx`: shell, navigation, overlay routing, recovery nudge, character still preloading
 - `apps/web/src/components/views/`: Today, Nourish, Move, Restore, Progress, Onboarding

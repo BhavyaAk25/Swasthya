@@ -11,4 +11,5 @@ coverage
 
 # design review masters (large, kept locally)
 output/
-.claude/
+.claude/*
+!.claude/skills/

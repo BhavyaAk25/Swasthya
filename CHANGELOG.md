@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-15: Release tooling
+- `npm run release` runs a secret scan, typecheck, lint, the Next build and the asset check, then refreshes and builds the ChatGPT Sites copy (`scripts/release.mjs`).
+- `/release-site` skill (`.claude/skills/release-site/`) and an `AGENTS.md › Releasing` section. Pushing to GitHub does not update the live site; publishing is one step in Codex ("publish the Swasthya site").
+
 ## 2026-10-15: Illustrated characters, smoother sessions, free AI coach
 
 ### Characters and rendering

@@ -7,6 +7,7 @@
     "lint": "npm --prefix apps/web run lint",
     "typecheck": "npm --prefix apps/web run typecheck",
     "build": "npm --prefix apps/web run build",
-    "start": "npm --prefix apps/web run start"
+    "start": "npm --prefix apps/web run start",
+    "release": "node scripts/release.mjs"
   }
 }

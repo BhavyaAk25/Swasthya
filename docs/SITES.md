@@ -1,5 +1,7 @@
 # ChatGPT Sites deployment
 
+**Quick release:** `npm run release`, commit and push, then in Codex: "publish the Swasthya site" (steps in `AGENTS.md › Releasing`). Pushing to GitHub alone does not change the live site.
+
 The canonical application is `apps/web`. `.openai/hosting.json` records the existing Site identity; reuse it rather than creating another Site. The isolated hosting checkout is ignored at `output/sites/swasthya/`, so the main Next.js project does not gain a second framework or deployment dependencies.
 
 `node scripts/prepare-sites.mjs` copies only application source and selected public assets into that checkout and retains the supported Sites/Vinext/Workers runtime. It never copies `.env.local`, browser storage, Git history, working screenshots or asset-generation experiments. An optional first argument or `SITES_PLUGIN_ROOT` selects the installed Sites plugin directory.
