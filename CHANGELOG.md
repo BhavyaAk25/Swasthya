@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-15: Live on Vercel
+- The site is now hosted on Vercel at https://swasthya-bhavya.vercel.app, linked to GitHub. Every push to `main` deploys, with no separate publish step.
+- `npm run release` now only verifies (the ChatGPT Sites steps moved behind `--sites`). The `/release-site` skill pushes and confirms the Vercel deployment.
+- The Groq key is set as a Vercel environment variable, so the AI coach works on the live site.
+
 ## 2026-10-15: Release tooling
 - `npm run release` runs a secret scan, typecheck, lint, the Next build and the asset check, then refreshes and builds the ChatGPT Sites copy (`scripts/release.mjs`).
 - `/release-site` skill (`.claude/skills/release-site/`) and an `AGENTS.md › Releasing` section. Pushing to GitHub does not update the live site; publishing is one step in Codex ("publish the Swasthya site").

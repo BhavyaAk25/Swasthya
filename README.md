@@ -48,6 +48,8 @@ cp apps/web/.env.example apps/web/.env.local
 npm run dev
 ```
 
+Live: **https://swasthya-bhavya.vercel.app** (Vercel; every push to `main` deploys).
+
 Then open http://localhost:3000. AI keys in `.env.local` are optional.
 
 Checks: `npm run lint`, `npm run typecheck`, `npm run build`.

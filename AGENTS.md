@@ -48,10 +48,11 @@ npm run build
 Run typecheck and build one after the other (the build regenerates `.next/types`).
 
 ## Releasing
-The live site is https://swasthya-wellness.bhavyaak.chatgpt.site (ChatGPT Sites, `project_id` in `.openai/hosting.json`, public audience). **Pushing to GitHub does not update it.** Release in two steps:
-1. Any agent: `npm run release` (secret scan, typecheck, lint, Next build, asset check, `scripts/prepare-sites.mjs`, then a build of the Sites copy in `output/sites/swasthya`), then commit and push `main`.
-2. Codex with the Sites plugin ("publish the Swasthya site"): keep the existing Site and its public audience. Call `get_site` and `create_source_repository_write_credential`, open the existing source with the plugin's `scripts/site-workflow.mjs`, copy in the prepared `output/sites/swasthya` files, package with `commands: [["node", "<plugin-root>/scripts/build-site.mjs"]]` and an absolute `archivePath`, then `save_site_version` + `deploy_site_version`. Never include `.env.local` or keys. Verify that the live `/api/status` returns a `provider` field (new build) and that the page loads.
-- Only if dependencies changed: refresh the Sites lockfile and install, as described in `docs/SITES.md`.
+The live site is **https://swasthya-bhavya.vercel.app** (Vercel project `swasthya`, team "Bhavya's projects", root directory `apps/web`). It is linked to GitHub: **every push to `main` deploys to production automatically**; other branches get private preview URLs.
+1. `npm run release` (secret scan, typecheck, lint, Next build, asset check). Fix anything it reports.
+2. Commit and push `main`. Then confirm the deployment is Ready (Vercel dashboard or connector) and that `https://swasthya-bhavya.vercel.app/api/status` responds.
+- `GROQ_API_KEY` (and optionally `GEMINI_API_KEY`) live only in Vercel › Project › Settings › Environment Variables. Never commit them; after changing one, redeploy.
+- The older ChatGPT Sites copy (`docs/SITES.md`, `npm run release -- --sites`) is legacy.
 
 ## Layout
 - `apps/web/src/components/app.tsx`: shell, navigation, overlay routing, recovery nudge, character still preloading

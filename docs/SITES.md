@@ -1,6 +1,6 @@
 # ChatGPT Sites deployment
 
-**Quick release:** `npm run release`, commit and push, then in Codex: "publish the Swasthya site" (steps in `AGENTS.md › Releasing`). Pushing to GitHub alone does not change the live site.
+**Legacy.** The live site moved to Vercel (https://swasthya-bhavya.vercel.app), which deploys on every push to `main`; see `AGENTS.md › Releasing`. This Sites flow is kept only for reference (`npm run release -- --sites`).
 
 The canonical application is `apps/web`. `.openai/hosting.json` records the existing Site identity; reuse it rather than creating another Site. The isolated hosting checkout is ignored at `output/sites/swasthya/`, so the main Next.js project does not gain a second framework or deployment dependencies.
 
