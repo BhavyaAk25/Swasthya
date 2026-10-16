@@ -1,11 +1,14 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ArrowUpRight, Camera, Check, Flame, Moon, Play } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight, ArrowUpRight, Camera, Check, Flame, Hand, Play } from "lucide-react";
 
 import { useApp } from "@/components/app";
-import { Bar, Button, calm, Card, ImageSlot, Ring } from "@/components/ui";
-import { IMAGES } from "@/lib/images";
+import { CheckInCard } from "@/components/checkin";
+import { CoachNote } from "@/components/coach-note";
+import { HeroScene } from "@/components/three";
+import { Bar, Button, calm, Card, Ring } from "@/components/ui";
+import { BreathingTide } from "@/components/visuals";
 import { streak, todayOf, totalsFor } from "@/lib/store";
 import { cn, countdown, greeting, lastNDays, longDate, nextAt, weekdayShort } from "@/lib/utils";
 
@@ -19,18 +22,20 @@ const rise = {
 };
 
 export function TodayView() {
-  const { data, open, go } = useApp();
+  const { data, open, go, covered } = useApp();
   const profile = data.profile!;
   const t = todayOf(data);
   const days = streak(data);
   const session = t.session!;
   const done = t.day.status === "done";
-  const progress = session.exercises.length ? t.day.completed.length / session.exercises.length : 0;
+  const completed = t.day.completed.filter((id) => session.exercises.some((e) => e.id === id)).length;
+  const progress = session.exercises.length ? completed / session.exercises.length : 0;
+  const note = "note" in session ? (session.note as string | undefined) : undefined;
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6 lg:space-y-8">
       <motion.header variants={rise} className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <div className="eyebrow">{longDate()}</div>
           <h1 className="mt-2 font-display text-4xl font-light sm:text-5xl">
             {greeting()}, {profile.name}
@@ -44,34 +49,65 @@ export function TodayView() {
         ) : null}
       </motion.header>
 
-      {/* Hero: today's practice */}
-      <motion.div variants={rise}>
-        <ImageSlot src={IMAGES.hero} tone="sage" label="Image" className="h-[300px] sm:h-[340px]">
-          <div className="flex h-full flex-col justify-end p-6 sm:p-9">
-            <div className="max-w-md rounded-[24px] bg-[rgba(251,250,246,0.78)] p-5 backdrop-blur-md sm:p-6">
-              <div className="eyebrow">{session.rest ? "Gentle day" : "Today's practice"}</div>
-              <div className="mt-2 flex items-end justify-between gap-4">
-                <div>
-                  <div className="font-display text-3xl">{session.title}</div>
-                  <div className="mt-1 text-sm text-ink-soft">
-                    {session.minutes} min · {session.exercises.length} moves
-                  </div>
-                </div>
-                <Button onClick={() => go("move")} icon={done ? Check : Play} variant={done ? "soft" : "primary"}>
-                  {done ? "Done" : "Start"}
-                </Button>
-              </div>
-              {!done && progress > 0 ? (
-                <div className="mt-4">
-                  <Bar value={progress} />
-                </div>
+      {/* Hero: the two friends + today's practice */}
+      <motion.section
+        variants={rise}
+        className="relative overflow-hidden rounded-[32px] border border-line bg-bg"
+      >
+        <div className="grid [&>*]:min-w-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+          <div className="order-2 flex flex-col justify-center px-6 pb-7 pt-1 sm:px-9 sm:pb-9 lg:order-1 lg:py-12 lg:pl-12 lg:pr-4">
+            <div className="eyebrow">{session.rest ? "Gentle day" : "Today's practice"}</div>
+            <h2 className="mt-2 font-display text-4xl leading-[1.05] sm:text-5xl">{session.title}</h2>
+            <p className="mt-2 text-ink-soft">
+              {session.focus} · {session.minutes} min · {session.exercises.length} moves
+            </p>
+            <AnimatePresence initial={false}>
+              {note ? (
+                <motion.p
+                  key={note}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={calm}
+                  className="mt-3 max-w-sm overflow-hidden text-sm text-moss"
+                >
+                  {note}
+                </motion.p>
               ) : null}
+            </AnimatePresence>
+            {!done && progress > 0 ? (
+              <div className="mt-5 max-w-sm">
+                <Bar value={progress} />
+              </div>
+            ) : null}
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              {done ? (
+                <Button variant="soft" icon={Check} onClick={() => go("move")}>
+                  Done for today
+                </Button>
+              ) : (
+                <Button size="lg" icon={Play} onClick={() => open("workout")}>
+                  {progress > 0 ? "Continue" : "Start session"}
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => go("move")}>
+                See moves <ArrowRight className="h-4 w-4" />
+              </Button>
             </div>
+            <p className="mt-6 hidden items-center gap-2 text-xs text-ink-faint lg:flex">
+              <Hand className="h-3.5 w-3.5" strokeWidth={1.6} /> Tap a friend to train with them
+            </p>
           </div>
-        </ImageSlot>
-      </motion.div>
+          <div className="order-1 h-[290px] sm:h-[400px] lg:order-2 lg:h-[500px]">
+            <HeroScene className="h-full w-full" active={!covered} />
+          </div>
+        </div>
+      </motion.section>
 
-      <div className="grid gap-4 [&>*]:min-w-0 md:grid-cols-2 lg:gap-6">
+      {/* One calm suggestion: check-in rule first, else the AI coach note */}
+      <CoachNote />
+
+      <div className="grid gap-4 [&>*]:min-w-0 md:grid-cols-2 lg:gap-6 xl:grid-cols-3">
         {/* Nourish */}
         <Card variants={rise} className="flex flex-col">
           <div className="flex items-start justify-between">
@@ -80,8 +116,8 @@ export function TodayView() {
               <ArrowUpRight className="h-4 w-4" />
             </button>
           </div>
-          <div className="mt-4 flex items-center gap-6">
-            <Ring value={t.calories / profile.calorieTarget} size={112} stroke={7}>
+          <div className="mt-4 flex flex-1 items-center gap-6">
+            <Ring value={t.calories / profile.calorieTarget} size={108} stroke={7}>
               <div>
                 <div className="font-display text-2xl tabular-nums">{t.calories}</div>
                 <div className="text-[11px] text-ink-faint">of {profile.calorieTarget}</div>
@@ -119,15 +155,15 @@ export function TodayView() {
             </button>
           </div>
           <div className="mt-4 flex flex-1 items-center gap-6">
-            <div className="relative grid h-[112px] w-[112px] shrink-0 place-items-center">
-              <span className="absolute inset-0 rounded-full bg-[#e9e3ea]" />
-              <span
-                className={cn("absolute inset-5 rounded-full", t.recovered ? "bg-moss" : "bg-[#cbbfd0]")}
-                style={{ animation: "breathe 8s ease-in-out infinite" }}
-              />
-              {t.recovered ? <Check className="relative h-6 w-6 text-white" strokeWidth={2} /> : <Moon className="relative h-5 w-5 text-white" strokeWidth={1.8} />}
+            <div className="relative grid h-[108px] w-[108px] shrink-0 place-items-center">
+              <BreathingTide level={t.recovered ? 0.5 : undefined} />
+              {t.recovered ? (
+                <span className="absolute bottom-1 right-1 grid h-7 w-7 place-items-center rounded-full bg-moss">
+                  <Check className="h-4 w-4 text-white" strokeWidth={2} />
+                </span>
+              ) : null}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="font-display text-2xl">{t.recovered ? "Rested" : "Evening reset"}</div>
               <div className="mt-1 text-sm text-ink-soft">
                 {t.recovered ? `${t.recoveryMinutes} min today` : countdown(nextAt(profile.recoveryTime))}
@@ -143,6 +179,10 @@ export function TodayView() {
             {t.recovered ? "Again" : "Begin now"}
           </Button>
         </Card>
+
+        <motion.div variants={rise} className="md:col-span-2 xl:col-span-1">
+          <CheckInCard className="h-full" />
+        </motion.div>
       </div>
 
       {/* Week */}
@@ -160,14 +200,19 @@ export function TodayView() {
             const d = totalsFor(data, key);
             const isToday = i === 6;
             return (
-              <div key={key} className={cn("flex flex-col items-center gap-3 rounded-2xl py-3", isToday && "bg-surface-2")}>
+              <button
+                key={key}
+                type="button"
+                onClick={() => go("progress")}
+                className={cn("flex flex-col items-center gap-3 rounded-2xl py-3 hover:bg-surface-2/70", isToday && "bg-surface-2")}
+              >
                 <span className={cn("text-xs", isToday ? "font-semibold text-ink" : "text-ink-faint")}>{weekdayShort(key)}</span>
-                <div className="flex flex-col gap-1.5">
+                <span className="flex flex-col gap-1.5">
                   <Dot on={d.calories > 0} color="bg-clay" />
                   <Dot on={d.workout} color="bg-moss" />
                   <Dot on={d.recovered} color="bg-[#b5a5bb]" />
-                </div>
-              </div>
+                </span>
+              </button>
             );
           })}
         </div>

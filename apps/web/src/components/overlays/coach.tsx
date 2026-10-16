@@ -5,10 +5,11 @@ import { ArrowUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useApp } from "@/components/app";
-import { calm, Chip, Sheet } from "@/components/ui";
-import { offlineReply, understand } from "@/lib/coach";
-import { actions, todayOf } from "@/lib/store";
-import type { CoachAction, CoachContext, CoachReply } from "@/lib/types";
+import { Button, calm, Chip, Sheet } from "@/components/ui";
+import { Illustration } from "@/components/visuals";
+import { ACTION_LABEL, offlineReply, understand } from "@/lib/coach";
+import { actions, coachContext, todayOf } from "@/lib/store";
+import type { CoachAction, CoachReply } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const SUGGESTIONS = ["I had 2 eggs and toast", "I'm tired today", "Only 15 minutes", "Help me relax"];
@@ -26,7 +27,11 @@ function Chat({ onClose }: { onClose: () => void }) {
   const [text, setText] = useState("");
   const [thinking, setThinking] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const messages = data.messages;
+
+  // Pending hand-overs must not fire after the chat has closed.
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -35,13 +40,14 @@ function Chat({ onClose }: { onClose: () => void }) {
   function runAction(action: CoachAction) {
     if (!action) return;
     // Let the reply land, then hand over to the right tool.
-    setTimeout(() => {
-      onClose();
-      setTimeout(
-        () => open(action === "open_camera" ? "camera" : action === "open_squats" ? "squats" : { recovery: { minutes: 10 } }),
-        320,
-      );
-    }, 700);
+    const target =
+      action === "open_camera" ? "camera" : action === "open_squats" ? "squats" : action === "open_workout" ? "workout" : { recovery: { minutes: 10 } };
+    timers.current.push(
+      setTimeout(() => {
+        onClose();
+        timers.current.push(setTimeout(() => open(target), 320));
+      }, 700),
+    );
   }
 
   async function send(raw: string) {
@@ -80,30 +86,20 @@ function Chat({ onClose }: { onClose: () => void }) {
 
     setThinking(true);
     try {
-      const t = todayOf(data);
-      const profile = data.profile!;
-      const context: CoachContext = {
-        name: profile.name,
-        goal: profile.goal,
-        session: t.session?.title ?? "Rest",
-        calories: t.calories,
-        calorieTarget: profile.calorieTarget,
-        protein: t.protein,
-        proteinTarget: profile.proteinTarget,
-      };
       const res = await fetch("/api/coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(25000),
         body: JSON.stringify({
           message,
-          context,
+          context: coachContext(data),
           history: messages.slice(-6).map((m) => ({ role: m.role, text: m.text.slice(0, 600) })),
         }),
       });
       const reply = (await res.json().catch(() => null)) as CoachReply | null;
       if (!res.ok || !reply?.text) throw new Error();
-      actions.addMessage("coach", reply.text);
-      runAction(reply.action);
+      // A suggestion from the AI is offered as a button; only explicit requests open tools directly.
+      actions.addMessage("coach", reply.text, reply.action);
     } catch {
       actions.addMessage("coach", offlineReply(message));
     } finally {
@@ -114,7 +110,7 @@ function Chat({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex min-h-[55dvh] flex-col">
       <div className="flex-1 space-y-3 pb-4">
-        {messages.length === 0 ? <p className="py-6 text-center text-sm text-ink-faint">Ask about meals, training or rest.</p> : null}
+        {messages.length === 0 ? <div className="flex flex-col items-center py-5"><Illustration kind="coach" className="h-32 w-32" /><p className="mt-3 text-center text-sm text-ink-faint">Ask about meals, training or rest.</p></div> : null}
         <AnimatePresence initial={false}>
           {messages.map((m) => (
             <motion.div
@@ -124,13 +120,21 @@ function Chat({ onClose }: { onClose: () => void }) {
               transition={calm}
               className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}
             >
-              <div
-                className={cn(
-                  "max-w-[85%] rounded-[22px] px-4 py-2.5 text-[15px] leading-relaxed",
-                  m.role === "user" ? "rounded-br-md bg-moss text-white" : "rounded-bl-md bg-surface-2 text-ink",
-                )}
-              >
-                {m.text}
+              {m.role === "coach" ? <Illustration kind="coach" className="mr-2 mt-1 h-9 w-9 shrink-0" /> : null}
+              <div className={cn("flex max-w-[85%] flex-col gap-2", m.role === "user" ? "items-end" : "items-start")}>
+                <div
+                  className={cn(
+                    "rounded-[22px] px-4 py-2.5 text-[15px] leading-relaxed",
+                    m.role === "user" ? "rounded-br-md bg-moss text-white" : "rounded-bl-md bg-surface-2 text-ink",
+                  )}
+                >
+                  {m.text}
+                </div>
+                {m.action && m.action in ACTION_LABEL && m.id === messages[messages.length - 1]?.id ? (
+                  <Button size="sm" variant="soft" onClick={() => runAction(m.action ?? null)}>
+                    {ACTION_LABEL[m.action]}
+                  </Button>
+                ) : null}
               </div>
             </motion.div>
           ))}

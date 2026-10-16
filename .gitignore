@@ -2,8 +2,13 @@ node_modules
 .DS_Store
 apps/web/node_modules
 apps/web/.next
+apps/web/.next-*
 apps/web/.env.local
 apps/web/.env
 apps/web/.vercel
 dist
 coverage
+
+# design review masters (large, kept locally)
+output/
+.claude/

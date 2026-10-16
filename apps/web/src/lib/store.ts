@@ -2,9 +2,9 @@
 
 import { useSyncExternalStore } from "react";
 
-import { adapt, sessionFor } from "@/lib/plan";
-import type { AppData, Constraint, Meal, Message, Profile, WorkoutDay } from "@/lib/types";
-import { dateKey, uid } from "@/lib/utils";
+import { adapt, GOALS, sessionFor, SPLITS } from "@/lib/plan";
+import type { AppData, CheckIn, CoachAction, CoachContext, Constraint, Meal, Message, Profile, WorkoutDay } from "@/lib/types";
+import { addDays, dateKey, uid } from "@/lib/utils";
 
 const KEY = "swasthya:v2";
 const MAX_MESSAGES = 60;
@@ -17,17 +17,42 @@ const empty = (): AppData => ({
   workouts: {},
   recovery: [],
   messages: [],
+  checkins: {},
 });
 
 let data: AppData | null = null; // null until hydrated on the client
 const listeners = new Set<() => void>();
 
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const list = <T,>(v: unknown, ok: (x: unknown) => boolean): T[] => (Array.isArray(v) ? (v.filter(ok) as T[]) : []);
+
+/** Read saved data defensively: a damaged field falls back on its own instead of crashing the app. */
 function load(): AppData {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return empty();
-    const parsed = JSON.parse(raw) as AppData;
-    return parsed?.version === 2 ? { ...empty(), ...parsed } : empty();
+    const p = JSON.parse(raw) as Record<string, unknown>;
+    if (!isObj(p) || p.version !== 2) return empty();
+    const pr = isObj(p.profile) ? p.profile : null;
+    const valid =
+      pr && typeof pr.name === "string" && SPLITS.some((x) => x.id === pr.split) && GOALS.some((x) => x.id === pr.goal) && typeof pr.recoveryTime === "string";
+    const profile = valid ? (pr as unknown as Profile) : null;
+    const workouts: AppData["workouts"] = {};
+    if (isObj(p.workouts)) {
+      for (const [k, v] of Object.entries(p.workouts)) {
+        if (isObj(v)) workouts[k] = { ...(v as unknown as WorkoutDay), completed: Array.isArray(v.completed) ? (v.completed as string[]) : [] };
+      }
+    }
+    return {
+      version: 2,
+      profile,
+      meals: list<Meal>(p.meals, (m) => isObj(m) && typeof m.date === "string" && typeof m.calories === "number"),
+      workouts,
+      recovery: list(p.recovery, (r) => isObj(r) && typeof r.date === "string" && typeof r.minutes === "number"),
+      messages: list(p.messages, (m) => isObj(m) && typeof m.text === "string"),
+      checkins: isObj(p.checkins) ? (p.checkins as AppData["checkins"]) : {},
+      snoozedUntil: typeof p.snoozedUntil === "string" ? p.snoozedUntil : undefined,
+    };
   } catch {
     return empty();
   }
@@ -79,20 +104,23 @@ export function useData(): AppData | null {
 
 export function todayOf(d: AppData, date = new Date()) {
   const key = dateKey(date);
-  const meals = d.meals.filter((m) => m.date === key);
   const day: WorkoutDay = d.workouts[key] ?? { date: key, status: "planned", completed: [] };
   const base = d.profile ? sessionFor(d.profile.split, date) : null;
-  const session = base ? adapt(base, day.adaptation) : null;
+  const totals = totalsFor(d, key);
   return {
     key,
-    meals,
-    calories: meals.reduce((s, m) => s + m.calories, 0),
-    protein: meals.reduce((s, m) => s + m.protein, 0),
+    meals: d.meals.filter((m) => m.date === key),
+    calories: totals.calories,
+    protein: totals.protein,
     day,
-    session,
-    recovered: d.recovery.some((r) => r.date === key),
-    recoveryMinutes: d.recovery.filter((r) => r.date === key).reduce((s, r) => s + r.minutes, 0),
+    session: base ? adapt(base, day.adaptation) : null,
+    recovered: totals.recovered,
+    recoveryMinutes: totals.recoveryMinutes,
   };
+}
+
+export function checkInFor(d: AppData, key = dateKey()): CheckIn {
+  return d.checkins?.[key] ?? { date: key, water: 0 };
 }
 
 export function totalsFor(d: AppData, key: string) {
@@ -102,6 +130,8 @@ export function totalsFor(d: AppData, key: string) {
     protein: meals.reduce((s, m) => s + m.protein, 0),
     workout: d.workouts[key]?.status === "done",
     recovered: d.recovery.some((r) => r.date === key),
+    recoveryMinutes: d.recovery.filter((r) => r.date === key).reduce((s, r) => s + r.minutes, 0),
+    checkin: d.checkins?.[key],
   };
 }
 
@@ -121,10 +151,44 @@ export function streak(d: AppData) {
   return count;
 }
 
+/** Everything the AI coach may know about today and the last few days (no free text). */
+export function coachContext(d: AppData): CoachContext | null {
+  const p = d.profile;
+  if (!p) return null;
+  const t = todayOf(d);
+  const c = checkInFor(d, t.key);
+  const session = t.session;
+  const ids = new Set(session?.exercises.map((e) => e.id) ?? []);
+  const recent = [3, 2, 1].map((back) => {
+    const key = dateKey(addDays(new Date(), -back));
+    const x = totalsFor(d, key);
+    return { calories: x.calories, workout: x.workout, rested: x.recovered, sleep: x.checkin?.sleep, mood: x.checkin?.mood };
+  });
+  return {
+    name: p.name,
+    goal: p.goal,
+    session: session?.title ?? "Rest",
+    adaptation: t.day.adaptation,
+    workoutDone: t.day.status === "done",
+    movesDone: t.day.completed.filter((id) => ids.has(id)).length,
+    movesTotal: ids.size,
+    recovered: t.recovered,
+    streak: streak(d),
+    calories: t.calories,
+    calorieTarget: p.calorieTarget,
+    protein: t.protein,
+    proteinTarget: p.proteinTarget,
+    water: c.water,
+    sleep: c.sleep,
+    mood: c.mood,
+    recent,
+  };
+}
+
 /* ---------- actions ---------- */
 
-function say(role: Message["role"], text: string): Message {
-  return { id: uid("m"), role, text, at: new Date().toISOString() };
+function say(role: Message["role"], text: string, action?: CoachAction): Message {
+  return { id: uid("m"), role, text, at: new Date().toISOString(), ...(action ? { action } : {}) };
 }
 
 function updateDay(d: AppData, fn: (day: WorkoutDay) => WorkoutDay): AppData {
@@ -165,7 +229,14 @@ export const actions = {
   },
 
   setAdaptation(constraint: Constraint | undefined) {
-    set((d) => updateDay(d, (day) => ({ ...day, adaptation: constraint, completed: [] })));
+    set((d) =>
+      updateDay(d, (day) => {
+        // Keep moves already done that are still part of the adapted session.
+        const base = d.profile ? sessionFor(d.profile.split) : null;
+        const keepIds = new Set(base ? adapt(base, constraint).exercises.map((e) => e.id) : []);
+        return { ...day, adaptation: constraint, completed: day.completed.filter((id) => keepIds.has(id)) };
+      }),
+    );
   },
 
   setWorkoutStatus(status: WorkoutDay["status"]) {
@@ -182,6 +253,29 @@ export const actions = {
     );
   },
 
+  /** Record what the guided player finished. Marks the session done when every move is complete. */
+  finishGuidedWorkout(result: { completed: string[]; seconds: number; sets: number; allDone: boolean }) {
+    set((d) =>
+      updateDay(d, (day) => ({
+        ...day,
+        completed: Array.from(new Set([...day.completed, ...result.completed])),
+        seconds: (day.seconds ?? 0) + Math.round(result.seconds),
+        sets: (day.sets ?? 0) + result.sets,
+        status: result.allDone ? "done" : day.status,
+      })),
+    );
+  },
+
+  setCheckIn(patch: Partial<Omit<CheckIn, "date">>, key = dateKey()) {
+    set((d) => {
+      const current = d.checkins?.[key] ?? { date: key, water: 0 };
+      const next: CheckIn = { ...current, ...patch, date: key };
+      next.water = Math.max(0, Math.min(16, Math.round(next.water)));
+      if (next.sleep !== undefined) next.sleep = Math.max(0, Math.min(14, next.sleep));
+      return { ...d, checkins: { ...(d.checkins ?? {}), [key]: next } };
+    });
+  },
+
   logRecovery(minutes: number, kind: "guided" | "live" = "guided") {
     set((d) => ({
       ...d,
@@ -194,8 +288,8 @@ export const actions = {
     set((d) => ({ ...d, snoozedUntil: new Date(Date.now() + minutes * 60000).toISOString() }));
   },
 
-  addMessage(role: Message["role"], text: string) {
-    set((d) => ({ ...d, messages: [...d.messages, say(role, text)] }));
+  addMessage(role: Message["role"], text: string, action?: CoachAction) {
+    set((d) => ({ ...d, messages: [...d.messages, say(role, text, action)] }));
   },
 
   clearChat() {

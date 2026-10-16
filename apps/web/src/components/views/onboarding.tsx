@@ -4,19 +4,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { useState } from "react";
 
-import { Button, calm, ImageSlot } from "@/components/ui";
+import { SwasthyaWordmark } from "@/components/brand";
+import { HeroScene } from "@/components/three";
+import { Button, calm } from "@/components/ui";
 import { targetsFor } from "@/lib/foods";
-import { IMAGES } from "@/lib/images";
-import { SPLITS } from "@/lib/plan";
+import { GOALS, SPLITS } from "@/lib/plan";
 import { actions } from "@/lib/store";
 import type { Goal, Split } from "@/lib/types";
 import { cn, formatTime } from "@/lib/utils";
-
-const GOALS: { id: Goal; label: string; hint: string }[] = [
-  { id: "consistency", label: "Consistency", hint: "Show up, gently, every day" },
-  { id: "strength", label: "Strength", hint: "Train with clear progress" },
-  { id: "recovery", label: "Recovery", hint: "Rest deeper, stress less" },
-];
 
 const TIMES = ["20:30", "21:00", "21:30", "22:00", "22:30"];
 
@@ -169,22 +164,24 @@ export function Onboarding() {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
       <div className="relative hidden p-4 lg:block">
-        <ImageSlot src={IMAGES.welcome} tone="sage" label="Image" className="sticky top-4 h-[calc(100dvh-2rem)]">
-          <div className="flex h-full flex-col justify-end p-10">
-            <div className="font-display text-5xl font-light leading-[1.05] text-ink/80">
+        <div className="sticky top-4 h-[calc(100dvh-2rem)] overflow-hidden rounded-[32px] border border-line bg-bg">
+          <HeroScene className="absolute inset-x-0 top-0 h-[80%]" label="Two friends on yoga mats. Tap one to see them train." />
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-6 p-10">
+            <div className="font-display text-4xl font-light leading-[1.05] text-ink/80 xl:text-5xl">
               Breathe.
               <br />
               Move.
               <br />
               Nourish.
             </div>
+            <p className="max-w-[14rem] pb-1 text-right text-xs text-ink-faint">Tap a friend to train with them.</p>
           </div>
-        </ImageSlot>
+        </div>
       </div>
 
       <div className="flex flex-col px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] sm:px-12 lg:px-16">
         <div className="flex items-center justify-between">
-          <span className="font-display text-[22px]">swasthya</span>
+          <SwasthyaWordmark />
           <div className="flex gap-1.5">
             {steps.map((_, i) => (
               <motion.span
@@ -197,7 +194,9 @@ export function Onboarding() {
           </div>
         </div>
 
-        <ImageSlot src={IMAGES.welcome} tone="sage" className="mt-6 h-40 sm:h-56 lg:hidden" />
+        <div className="relative mt-5 overflow-hidden rounded-[28px] border border-line bg-bg lg:hidden">
+          <HeroScene className="h-[300px] w-full sm:h-[380px]" />
+        </div>
 
         <div className="relative flex flex-1 flex-col justify-center py-10">
           <AnimatePresence mode="wait" custom={dir} initial={false}>

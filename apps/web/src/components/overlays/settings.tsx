@@ -5,16 +5,10 @@ import { useState } from "react";
 
 import { useApp } from "@/components/app";
 import { Button, Chip, Sheet } from "@/components/ui";
-import { SPLITS } from "@/lib/plan";
+import { GOALS, SPLITS } from "@/lib/plan";
 import { actions } from "@/lib/store";
-import type { Goal, Profile } from "@/lib/types";
+import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const GOALS: { id: Goal; label: string }[] = [
-  { id: "consistency", label: "Consistency" },
-  { id: "strength", label: "Strength" },
-  { id: "recovery", label: "Recovery" },
-];
 
 export function SettingsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   return (
@@ -95,7 +89,9 @@ function Form({ onClose }: { onClose: () => void }) {
       <div className="flex items-center gap-3 rounded-[20px] bg-surface-2 px-4 py-3 text-sm">
         <span className={cn("h-2 w-2 shrink-0 rounded-full", ai.ai ? "bg-moss" : "bg-ink-faint")} />
         <span className="text-ink-soft">
-          {ai.ai ? "Gemini is on for photos, chat and live voice." : "Offline mode. Add a free Gemini key to .env.local for photo estimates and live voice."}
+          {ai.ai
+            ? `AI is on via ${ai.provider === "groq" ? "Groq" : "Gemini"} for coach notes, chat and photo estimates${ai.live ? ", plus live voice" : ""}.`
+            : "Offline mode. Add a free Groq or Gemini key to .env.local for coach notes, chat and photo estimates."}
         </span>
       </div>
 
@@ -110,6 +106,7 @@ function Form({ onClose }: { onClose: () => void }) {
           className={cn(confirmReset && "bg-clay-soft text-[#8a6440]")}
           onClick={() => {
             if (!confirmReset) return setConfirmReset(true);
+            onClose();
             actions.reset();
           }}
         >

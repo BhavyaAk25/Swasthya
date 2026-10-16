@@ -5,14 +5,16 @@ import { Camera, Download, Plus, Utensils, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { useApp } from "@/components/app";
-import { Bar, Button, calm, Card, Chip, ImageSlot, Ring } from "@/components/ui";
+import { Bar, Button, calm, Card, Chip, ImageSlot } from "@/components/ui";
+import { PlateScene } from "@/components/three";
 import { estimateFromItems, foodById, parseFoodText, QUICK_FOODS } from "@/lib/foods";
 import { IMAGES } from "@/lib/images";
+import { Illustration } from "@/components/visuals";
 import { actions, todayOf, totalsFor } from "@/lib/store";
 import { cn, formatClock, lastNDays, weekdayShort } from "@/lib/utils";
 
 export function NourishView() {
-  const { data, open, toast } = useApp();
+  const { data, open, toast, covered } = useApp();
   const profile = data.profile!;
   const t = todayOf(data);
   const [text, setText] = useState("");
@@ -50,22 +52,25 @@ export function NourishView() {
         </Button>
       </header>
 
-      <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-[1.1fr_1fr] lg:gap-6">
-        <Card className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <Ring value={t.calories / profile.calorieTarget} size={148} stroke={9}>
-            <div>
-              <div className="font-display text-4xl tabular-nums">{t.calories}</div>
-              <div className="text-xs text-ink-faint">kcal today</div>
+      <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-[1.25fr_1fr] lg:gap-6">
+        <section className="relative overflow-hidden rounded-[32px] border border-line bg-[radial-gradient(110%_100%_at_30%_10%,#fbf9f5_0%,#f3ece3_60%,#ebe1d4_100%)]">
+          <div className="grid items-center [&>*]:min-w-0 sm:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+            <PlateScene fill={t.calories / profile.calorieTarget} active={!covered} className="h-[250px] sm:h-[300px]" />
+            <div className="space-y-5 px-6 pb-7 sm:py-8 sm:pl-0 sm:pr-8">
+              <div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-display text-5xl tabular-nums">{t.calories}</span>
+                  <span className="text-sm text-ink-faint">kcal today</span>
+                </div>
+                <p className="mt-1 text-xs text-ink-faint">Your bowl fills as you eat. Estimates, not exact values.</p>
+              </div>
+              <Metric label="Calories" value={t.calories} target={profile.calorieTarget} unit="kcal" color="var(--moss)" />
+              <Metric label="Protein" value={t.protein} target={profile.proteinTarget} unit="g" color="var(--clay)" />
             </div>
-          </Ring>
-          <div className="flex-1 space-y-5">
-            <Metric label="Calories" value={t.calories} target={profile.calorieTarget} unit="kcal" color="var(--moss)" />
-            <Metric label="Protein" value={t.protein} target={profile.proteinTarget} unit="g" color="var(--clay)" />
-            <p className="text-xs text-ink-faint">Estimates, not exact values.</p>
           </div>
-        </Card>
+        </section>
 
-        <ImageSlot src={IMAGES.nourish} tone="clay" label="Image" className="hidden min-h-[220px] lg:block" />
+        <ImageSlot src={IMAGES.nourish} tone="clay" alt="A colourful bowl of food" className="hidden min-h-[240px] lg:block" />
       </div>
 
       {/* Quick log */}
@@ -147,7 +152,7 @@ export function NourishView() {
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={m.photo} alt="" className="h-12 w-12 shrink-0 rounded-2xl object-cover" />
                         ) : (
-                          <ImageSlot tone="clay" className="h-12 w-12 shrink-0 rounded-2xl" />
+                          <Illustration kind="meal" className="h-12 w-12 shrink-0 rounded-2xl bg-clay-soft/50 p-1" />
                         )}
                         <div className="min-w-0 flex-1">
                           <div className="truncate font-medium">{m.name}</div>

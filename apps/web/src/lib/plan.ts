@@ -1,4 +1,4 @@
-import type { Constraint, Session, Split } from "@/lib/types";
+import type { Constraint, Goal, Session, Split } from "@/lib/types";
 
 const lower: Session = {
   id: "lower",
@@ -35,7 +35,7 @@ const full: Session = {
     { id: "squat", name: "Bodyweight squats", sets: "3 × 12", squat: true },
     { id: "pushup", name: "Push-ups", sets: "3 × 10" },
     { id: "lunge", name: "Reverse lunges", sets: "3 × 8 / side" },
-    { id: "deadbug", name: "Dead bugs", sets: "3 × 10" },
+    { id: "deadbug", name: "Dead bug leg extensions", sets: "3 × 10" },
   ],
 };
 
@@ -59,6 +59,12 @@ const WEEKS: Record<Split, Session[]> = {
   "upper-lower": [flow, upper, lower, flow, upper, lower, flow],
   "full-body": [flow, full, flow, full, flow, full, flow],
 };
+
+export const GOALS: { id: Goal; label: string; hint: string }[] = [
+  { id: "consistency", label: "Consistency", hint: "Show up, gently, every day" },
+  { id: "strength", label: "Strength", hint: "Train with clear progress" },
+  { id: "recovery", label: "Recovery", hint: "Rest deeper, stress less" },
+];
 
 export const SPLITS: { id: Split; label: string; hint: string }[] = [
   { id: "three-day", label: "Three days", hint: "Mon · Wed · Fri" },

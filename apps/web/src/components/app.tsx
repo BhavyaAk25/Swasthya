@@ -1,25 +1,30 @@
 "use client";
 
-import { AnimatePresence, LayoutGroup, motion, MotionConfig } from "framer-motion";
-import { Dumbbell, Home, Leaf, MessageCircle, Moon, Settings2, type LucideIcon } from "lucide-react";
+import { AnimatePresence, LayoutGroup, motion, MotionConfig, MotionGlobalConfig } from "framer-motion";
+import { BarChart3, Dumbbell, Home, Leaf, Moon, Settings2, type LucideIcon } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
+import { SwasthyaWordmark } from "@/components/brand";
 import { CoachSheet } from "@/components/overlays/coach";
 import { MealCapture } from "@/components/overlays/meal-capture";
 import { RecoverySession } from "@/components/overlays/recovery-session";
 import { SettingsSheet } from "@/components/overlays/settings";
 import { SquatTracker } from "@/components/overlays/squat-tracker";
+import { WorkoutPlayer } from "@/components/overlays/workout-player";
+import { preloadCharacters } from "@/components/three";
 import { calm, fade, IconButton, Toast } from "@/components/ui";
+import { BreathingTide, Illustration } from "@/components/visuals";
 import { MoveView } from "@/components/views/move";
 import { NourishView } from "@/components/views/nourish";
 import { Onboarding } from "@/components/views/onboarding";
+import { ProgressView } from "@/components/views/progress";
 import { RestoreView } from "@/components/views/restore";
 import { TodayView } from "@/components/views/today";
 import { actions, useData } from "@/lib/store";
 import type { AiStatus, AppData, Tab } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, dateKey } from "@/lib/utils";
 
-type Overlay = null | "camera" | "squats" | "coach" | "settings" | { recovery: { minutes: number; live?: boolean } };
+type Overlay = null | "camera" | "squats" | "coach" | "settings" | "workout" | { recovery: { minutes: number; live?: boolean } };
 
 interface Ctx {
   data: AppData;
@@ -28,6 +33,8 @@ interface Ctx {
   open: (overlay: Overlay) => void;
   toast: (message: string) => void;
   ai: AiStatus;
+  /** True while a sheet covers the page: background character and bowl scenes pause. */
+  covered: boolean;
 }
 
 const AppContext = createContext<Ctx | null>(null);
@@ -43,26 +50,32 @@ const NAV: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "nourish", label: "Nourish", icon: Leaf },
   { id: "move", label: "Move", icon: Dumbbell },
   { id: "restore", label: "Restore", icon: Moon },
+  { id: "progress", label: "Progress", icon: BarChart3 },
 ];
 
-function Wordmark({ className }: { className?: string }) {
-  return (
-    <div className={cn("flex items-center gap-2.5", className)}>
-      <span className="relative grid h-8 w-8 place-items-center">
-        <span className="absolute inset-0 rounded-full bg-moss-soft" />
-        <span className="absolute inset-[7px] rounded-full bg-moss" style={{ animation: "breathe 8s ease-in-out infinite" }} />
-      </span>
-      <span className="font-display text-[22px] leading-none">swasthya</span>
-    </div>
-  );
+// Dev-only: `?forcerender` (automated visual checks in hidden tabs) completes UI animations instantly.
+if (process.env.NODE_ENV !== "production" && typeof window !== "undefined" && window.location.search.includes("forcerender")) {
+  MotionGlobalConfig.skipAnimations = true;
 }
 
 export function App() {
   const data = useData();
   const [tab, setTab] = useState<Tab>("today");
   const [overlay, setOverlay] = useState<Overlay>(null);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toastMsg, setToastMsg] = useState<{ id: number; text: string } | null>(null);
   const [ai, setAi] = useState<AiStatus>({ ai: false, live: false });
+  const [day, setDay] = useState(() => dateKey());
+
+  // "Today" is derived at render time; re-render when the date rolls over (tab left open, laptop wakes).
+  useEffect(() => {
+    const check = () => setDay(dateKey());
+    const t = setInterval(check, 60_000);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, []);
 
   useEffect(() => {
     fetch("/api/status")
@@ -71,17 +84,27 @@ export function App() {
       .catch(() => undefined);
   }, []);
 
+  // Warm the small character stills once the page is idle.
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    const run = () => preloadCharacters();
+    if (w.requestIdleCallback) w.requestIdleCallback(run);
+    else setTimeout(run, 1200);
+  }, []);
+
   const go = useCallback((next: Tab) => {
     setTab(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
   const close = useCallback(() => setOverlay(null), []);
-  const toast = useCallback((m: string) => setToastMsg(m), []);
+  const toast = useCallback((text: string) => setToastMsg({ id: Date.now(), text }), []);
   const clearToast = useCallback(() => setToastMsg(null), []);
 
   const ctx = useMemo<Ctx | null>(
-    () => (data ? { data, tab, go, open: setOverlay, toast, ai } : null),
-    [data, tab, go, toast, ai],
+    () => (data ? { data, tab, go, open: setOverlay, toast, ai, covered: overlay !== null } : null),
+    // `day` refreshes every consumer after midnight.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, tab, go, toast, ai, overlay, day],
   );
 
   return (
@@ -90,7 +113,7 @@ export function App() {
       <AnimatePresence initial={false}>
         {!data ? (
           <div key="splash" className="grid min-h-dvh place-items-center">
-            <Wordmark className="opacity-70" />
+            <SwasthyaWordmark className="opacity-70" />
           </div>
         ) : !data.profile ? (
           <motion.div key="onboarding" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={fade}>
@@ -115,7 +138,7 @@ function Shell({ tab, go, openOverlay }: { tab: Tab; go: (t: Tab) => void; openO
     <div className="min-h-dvh lg:pl-[260px]">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[260px] flex-col border-r border-line bg-[rgba(251,250,246,0.6)] px-5 py-7 backdrop-blur-xl lg:flex">
-        <Wordmark className="px-3" />
+        <SwasthyaWordmark className="px-3" />
         <LayoutGroup id="side">
           <nav className="mt-12 space-y-1">
             {NAV.map((item) => (
@@ -143,7 +166,7 @@ function Shell({ tab, go, openOverlay }: { tab: Tab; go: (t: Tab) => void; openO
             onClick={() => openOverlay("coach")}
             className="flex h-11 w-full items-center gap-3 rounded-2xl bg-moss px-4 text-[15px] font-medium text-white hover:bg-[#344f45]"
           >
-            <MessageCircle className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            <Illustration kind="coach" className="h-8 w-6" />
             Ask coach
           </button>
           <button
@@ -159,7 +182,7 @@ function Shell({ tab, go, openOverlay }: { tab: Tab; go: (t: Tab) => void; openO
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between bg-[rgba(244,241,234,0.82)] px-5 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-xl lg:hidden">
-        <Wordmark />
+        <SwasthyaWordmark />
         <IconButton icon={Settings2} label="Settings" onClick={() => openOverlay("settings")} />
       </header>
 
@@ -177,6 +200,7 @@ function Shell({ tab, go, openOverlay }: { tab: Tab; go: (t: Tab) => void; openO
             {tab === "nourish" && <NourishView />}
             {tab === "move" && <MoveView />}
             {tab === "restore" && <RestoreView />}
+            {tab === "progress" && <ProgressView />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -210,7 +234,7 @@ function Shell({ tab, go, openOverlay }: { tab: Tab; go: (t: Tab) => void; openO
               onClick={() => openOverlay("coach")}
               className="ml-1 grid h-12 w-12 shrink-0 place-items-center rounded-full bg-moss text-white"
             >
-              <MessageCircle className="h-5 w-5" strokeWidth={1.8} />
+              <Illustration kind="coach" className="h-10 w-8" />
             </motion.button>
           </div>
         </LayoutGroup>
@@ -233,7 +257,7 @@ function RecoveryNudge() {
     const p = data.profile;
     if (!p) return false;
     const today = new Date(now);
-    const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const key = dateKey(today);
     if (data.recovery.some((r) => r.date === key)) return false;
     if (data.snoozedUntil && new Date(data.snoozedUntil).getTime() > now) return false;
     const [h, m] = p.recoveryTime.split(":").map(Number);
@@ -255,8 +279,7 @@ function RecoveryNudge() {
         >
           <div className="mb-6 flex flex-wrap items-center gap-4 rounded-[24px] bg-ink px-5 py-4 text-white sm:flex-nowrap">
             <span className="relative grid h-10 w-10 shrink-0 place-items-center">
-              <span className="absolute inset-0 rounded-full bg-white/10" />
-              <span className="absolute inset-2.5 rounded-full bg-[#c9b9a6]" style={{ animation: "breathe 6s ease-in-out infinite" }} />
+              <BreathingTide />
             </span>
             <div className="min-w-0 flex-1">
               <div className="font-display text-lg leading-tight">Time to wind down</div>
@@ -292,6 +315,7 @@ function Overlays({ overlay, close }: { overlay: Overlay; close: () => void }) {
   return (
     <>
       <MealCapture open={overlay === "camera"} onClose={close} />
+      <WorkoutPlayer open={overlay === "workout"} onClose={close} />
       <SquatTracker
         open={overlay === "squats"}
         onClose={close}

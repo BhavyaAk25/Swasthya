@@ -4,14 +4,14 @@ import { Mic, Play } from "lucide-react";
 import { useState } from "react";
 
 import { useApp } from "@/components/app";
-import { Button, Card, Chip, ImageSlot } from "@/components/ui";
-import { IMAGES } from "@/lib/images";
+import { Button, Card, Chip } from "@/components/ui";
+import { RestoreScene } from "@/components/three";
 import { LENGTHS } from "@/lib/recovery";
 import { actions, todayOf } from "@/lib/store";
 import { countdown, formatClock, formatTime, lastNDays, nextAt, weekdayShort } from "@/lib/utils";
 
 export function RestoreView() {
-  const { data, open, ai, toast } = useApp();
+  const { data, open, ai, toast, covered } = useApp();
   const profile = data.profile!;
   const t = todayOf(data);
   const [minutes, setMinutes] = useState<number>(10);
@@ -26,50 +26,50 @@ export function RestoreView() {
         <h1 className="mt-2 font-display text-4xl font-light sm:text-5xl">Rest is training too</h1>
       </header>
 
-      <ImageSlot src={IMAGES.restore} tone="dusk" className="min-h-[380px]">
-        <div className="flex h-full min-h-[380px] flex-col items-center justify-center gap-8 p-6 text-center sm:p-10">
-          <div className="relative grid h-36 w-36 place-items-center">
-            <span className="absolute inset-0 rounded-full bg-white/30" style={{ animation: "breathe 10s ease-in-out infinite" }} />
-            <span className="absolute inset-6 rounded-full bg-white/50" style={{ animation: "breathe 10s ease-in-out infinite 0.4s" }} />
-            <span className="absolute inset-12 rounded-full bg-white/80" />
+      <section className="relative overflow-hidden rounded-[32px] border border-line bg-[radial-gradient(120%_110%_at_70%_20%,#f8f5f1_0%,#ece7ee_55%,#e0d9e3_100%)]">
+        <div className="grid [&>*]:min-w-0 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+          <div className="h-[340px] sm:h-[400px] lg:order-2 lg:h-[500px]">
+            <RestoreScene active={!covered} className="h-full w-full" />
           </div>
-          <div>
-            <div className="font-display text-3xl">Yoga nidra</div>
-            <div className="mt-1 text-sm text-ink/60">
-              {t.recovered ? "Completed today" : `Tonight at ${formatTime(profile.recoveryTime)} · ${countdown(nextAt(profile.recoveryTime))}`}
+          <div className="flex flex-col items-center justify-center gap-5 px-6 pb-8 pt-2 text-center lg:order-1 lg:items-start lg:gap-6 lg:py-12 lg:pl-12 lg:pr-4 lg:text-left">
+            <div>
+              <div className="font-display text-4xl leading-tight sm:text-5xl">Yoga nidra</div>
+              <div className="mt-2 text-sm text-ink-soft">
+                {t.recovered ? "Completed today" : `Tonight at ${formatTime(profile.recoveryTime)} · ${countdown(nextAt(profile.recoveryTime))}`}
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2">
-            {LENGTHS.map((m) => (
-              <Chip key={m} active={minutes === m} onClick={() => setMinutes(m)} className={minutes === m ? "" : "border-white/50 bg-white/40 backdrop-blur"}>
-                {m} min
-              </Chip>
-            ))}
-          </div>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Button size="lg" icon={Play} onClick={() => open({ recovery: { minutes } })}>
-              Begin
-            </Button>
-            {ai.live ? (
-              <Button size="lg" variant="outline" icon={Mic} onClick={() => open({ recovery: { minutes, live: true } })} className="border-white/60 bg-white/50 backdrop-blur">
-                Talk live
+            <div className="flex gap-2">
+              {LENGTHS.map((m) => (
+                <Chip key={m} active={minutes === m} onClick={() => setMinutes(m)} className={minutes === m ? "" : "border-white/60 bg-white/50 backdrop-blur"}>
+                  {m} min
+                </Chip>
+              ))}
+            </div>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button size="lg" icon={Play} onClick={() => open({ recovery: { minutes } })}>
+                Begin
               </Button>
+              {ai.live ? (
+                <Button size="lg" variant="outline" icon={Mic} onClick={() => open({ recovery: { minutes, live: true } })} className="border-white/60 bg-white/50 backdrop-blur">
+                  Talk live
+                </Button>
+              ) : null}
+            </div>
+            {!t.recovered ? (
+              <button
+                type="button"
+                onClick={() => {
+                  actions.snoozeRecovery(30);
+                  toast("We'll remind you in 30 min");
+                }}
+                className="text-sm text-ink/50 hover:text-ink"
+              >
+                Remind me later
+              </button>
             ) : null}
           </div>
-          {!t.recovered ? (
-            <button
-              type="button"
-              onClick={() => {
-                actions.snoozeRecovery(30);
-                toast("We'll remind you in 30 min");
-              }}
-              className="text-sm text-ink/50 hover:text-ink"
-            >
-              Remind me later
-            </button>
-          ) : null}
         </div>
-      </ImageSlot>
+      </section>
 
       <div className="grid gap-4 [&>*]:min-w-0 md:grid-cols-2 lg:gap-6">
         <Card>

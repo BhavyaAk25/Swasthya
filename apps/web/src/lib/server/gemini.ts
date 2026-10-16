@@ -47,7 +47,8 @@ export async function generateJson<T>(
   let lastError = "No model responded.";
   for (const model of CORE_MODELS) {
     try {
-      const res = await ai.models.generateContent(build(model));
+      const params = build(model);
+      const res = await ai.models.generateContent({ ...params, config: { ...params.config, abortSignal: AbortSignal.timeout(20000) } });
       const raw = (res.text ?? "").replace(/^```(?:json)?\s*|\s*```$/g, "").trim();
       const parsed = schema.safeParse(JSON.parse(raw));
       if (parsed.success) return parsed.data;

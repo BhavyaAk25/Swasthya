@@ -1,0 +1,300 @@
+{
+  "voice": "bf_emma",
+  "clips": {
+    "1-minute": {
+      "text": "1 minute.",
+      "speed": 0.95,
+      "seconds": 1.03
+    },
+    "10-each-side": {
+      "text": "10 each side.",
+      "speed": 0.95,
+      "seconds": 1.25
+    },
+    "10-reps": {
+      "text": "10 reps.",
+      "speed": 0.95,
+      "seconds": 1.02
+    },
+    "12-reps": {
+      "text": "12 reps.",
+      "speed": 0.95,
+      "seconds": 1.11
+    },
+    "15-reps": {
+      "text": "15 reps.",
+      "speed": 0.95,
+      "seconds": 1.25
+    },
+    "2-minutes": {
+      "text": "2 minutes.",
+      "speed": 0.95,
+      "seconds": 1.04
+    },
+    "20-reps": {
+      "text": "20 reps.",
+      "speed": 0.95,
+      "seconds": 1.22
+    },
+    "3-minutes": {
+      "text": "3 minutes.",
+      "speed": 0.95,
+      "seconds": 1.13
+    },
+    "4-minutes": {
+      "text": "4 minutes.",
+      "speed": 0.95,
+      "seconds": 1.1
+    },
+    "40-seconds": {
+      "text": "40 seconds.",
+      "speed": 0.95,
+      "seconds": 1.27
+    },
+    "8-each-side": {
+      "text": "8 each side.",
+      "speed": 0.95,
+      "seconds": 1.3
+    },
+    "8-reps": {
+      "text": "8 reps.",
+      "speed": 0.95,
+      "seconds": 1.03
+    },
+    "backpack-rows": {
+      "text": "Backpack rows.",
+      "speed": 0.95,
+      "seconds": 1.3
+    },
+    "bodyweight-squats": {
+      "text": "Bodyweight squats.",
+      "speed": 0.95,
+      "seconds": 1.34
+    },
+    "breathe-in-slowly-through-the-nose": {
+      "text": "Breathe in slowly through the nose.",
+      "speed": 0.8,
+      "seconds": 2.53
+    },
+    "bring-attention-to-the-right-hand-the-arm-the-shoulder-the-right-leg-and-foot": {
+      "text": "Bring attention to the right hand, the arm, the shoulder, the right leg and foot.",
+      "speed": 0.8,
+      "seconds": 4.91
+    },
+    "calf-raises": {
+      "text": "Calf raises.",
+      "speed": 0.95,
+      "seconds": 1.25
+    },
+    "cat-cow": {
+      "text": "Cat–cow.",
+      "speed": 0.95,
+      "seconds": 0.99
+    },
+    "dead-bug-leg-extensions": {
+      "text": "Dead bug leg extensions.",
+      "speed": 0.95,
+      "seconds": 1.91
+    },
+    "deepen-the-breath": {
+      "text": "Deepen the breath.",
+      "speed": 0.8,
+      "seconds": 1.53
+    },
+    "feel-the-whole-body-at-once-resting-supported-completely-at-ease": {
+      "text": "Feel the whole body at once, resting, supported, completely at ease.",
+      "speed": 0.8,
+      "seconds": 4.72
+    },
+    "forward-fold": {
+      "text": "Forward fold.",
+      "speed": 0.95,
+      "seconds": 1.23
+    },
+    "glute-bridges": {
+      "text": "Glute bridges.",
+      "speed": 0.95,
+      "seconds": 1.26
+    },
+    "heavy-and-still": {
+      "text": "Heavy and still.",
+      "speed": 0.8,
+      "seconds": 1.57
+    },
+    "hip-openers": {
+      "text": "Hip openers.",
+      "speed": 0.95,
+      "seconds": 1.3
+    },
+    "if-thoughts-come-let-them-pass-like-clouds": {
+      "text": "If thoughts come, let them pass like clouds.",
+      "speed": 0.8,
+      "seconds": 3.05
+    },
+    "let-each-part-soften": {
+      "text": "Let each part soften.",
+      "speed": 0.8,
+      "seconds": 1.92
+    },
+    "let-the-out-breath-be-a-little-longer-than-the-in-breath": {
+      "text": "Let the out-breath be a little longer than the in-breath.",
+      "speed": 0.8,
+      "seconds": 3.22
+    },
+    "let-your-eyes-close": {
+      "text": "Let your eyes close.",
+      "speed": 0.8,
+      "seconds": 1.9
+    },
+    "lie-down-or-sit-back": {
+      "text": "Lie down or sit back.",
+      "speed": 0.8,
+      "seconds": 2.13
+    },
+    "move-your-fingers-and-toes": {
+      "text": "Move your fingers and toes.",
+      "speed": 0.8,
+      "seconds": 2.3
+    },
+    "nothing-to-do-for-the-next-few-minutes": {
+      "text": "Nothing to do for the next few minutes.",
+      "speed": 0.8,
+      "seconds": 2.54
+    },
+    "now-the-left-hand-the-arm-the-shoulder-the-left-leg-and-foot": {
+      "text": "Now the left hand, the arm, the shoulder, the left leg and foot.",
+      "speed": 0.8,
+      "seconds": 4.02
+    },
+    "one": {
+      "text": "One.",
+      "speed": 1,
+      "seconds": 0.83
+    },
+    "pike-push-ups": {
+      "text": "Pike push-ups.",
+      "speed": 0.95,
+      "seconds": 1.24
+    },
+    "plank": {
+      "text": "Plank.",
+      "speed": 0.95,
+      "seconds": 1.02
+    },
+    "push-ups": {
+      "text": "Push-ups.",
+      "speed": 0.95,
+      "seconds": 1.25
+    },
+    "quietly-choose-one-short-intention-for-tonight": {
+      "text": "Quietly choose one short intention for tonight.",
+      "speed": 0.8,
+      "seconds": 3.24
+    },
+    "repeat-it-once-then-let-it-go": {
+      "text": "Repeat it once, then let it go.",
+      "speed": 0.8,
+      "seconds": 2.45
+    },
+    "rest-in-the-quiet": {
+      "text": "Rest in the quiet.",
+      "speed": 0.8,
+      "seconds": 1.76
+    },
+    "rest-next": {
+      "text": "Rest. Next,",
+      "speed": 0.95,
+      "seconds": 1.26
+    },
+    "reverse-lunges": {
+      "text": "Reverse lunges.",
+      "speed": 0.95,
+      "seconds": 1.36
+    },
+    "session-complete-well-done": {
+      "text": "Session complete. Well done.",
+      "speed": 0.95,
+      "seconds": 1.88
+    },
+    "set-1-of-1": {
+      "text": "Set 1 of 1.",
+      "speed": 0.95,
+      "seconds": 1.17
+    },
+    "set-1-of-2": {
+      "text": "Set 1 of 2.",
+      "speed": 0.95,
+      "seconds": 1.18
+    },
+    "set-1-of-3": {
+      "text": "Set 1 of 3.",
+      "speed": 0.95,
+      "seconds": 1.2
+    },
+    "set-1-of-4": {
+      "text": "Set 1 of 4.",
+      "speed": 0.95,
+      "seconds": 1.2
+    },
+    "set-2-of-2": {
+      "text": "Set 2 of 2.",
+      "speed": 0.95,
+      "seconds": 1.24
+    },
+    "set-2-of-3": {
+      "text": "Set 2 of 3.",
+      "speed": 0.95,
+      "seconds": 1.31
+    },
+    "set-2-of-4": {
+      "text": "Set 2 of 4.",
+      "speed": 0.95,
+      "seconds": 1.3
+    },
+    "set-3-of-3": {
+      "text": "Set 3 of 3.",
+      "speed": 0.95,
+      "seconds": 1.33
+    },
+    "set-3-of-4": {
+      "text": "Set 3 of 4.",
+      "speed": 0.95,
+      "seconds": 1.33
+    },
+    "set-4-of-4": {
+      "text": "Set 4 of 4.",
+      "speed": 0.95,
+      "seconds": 1.33
+    },
+    "split-squats": {
+      "text": "Split squats.",
+      "speed": 0.95,
+      "seconds": 1.19
+    },
+    "thoracic-twists": {
+      "text": "Thoracic twists.",
+      "speed": 0.95,
+      "seconds": 1.42
+    },
+    "three": {
+      "text": "Three.",
+      "speed": 1,
+      "seconds": 0.83
+    },
+    "two": {
+      "text": "Two.",
+      "speed": 1,
+      "seconds": 0.74
+    },
+    "well-rested-take-your-time-getting-up": {
+      "text": "Well rested. Take your time getting up.",
+      "speed": 0.8,
+      "seconds": 2.86
+    },
+    "when-you-re-ready-open-your-eyes": {
+      "text": "When you're ready, open your eyes.",
+      "speed": 0.8,
+      "seconds": 2.4
+    }
+  }
+}

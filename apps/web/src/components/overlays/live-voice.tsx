@@ -6,13 +6,14 @@ import { Mic, MicOff, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button, IconButton, fade } from "@/components/ui";
+import { Illustration } from "@/components/visuals";
+import type { Goal } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Goal = "consistency" | "strength" | "recovery";
 type Phase = "connecting" | "listening" | "speaking" | "ended" | "error";
 type Line = { id: number; text: string };
 
-const OPENING_TURN = "Please begin a short, calm recovery session.";
+const openingTurn = (name: string) => `My name is ${name.slice(0, 40)}. Please begin a short, calm recovery session.`;
 const CONNECT_TIMEOUT_MS = 15000;
 const MAX_LINE_CHARS = 220;
 
@@ -420,7 +421,7 @@ export function LiveVoice({ name, goal, onEnd }: { name: string; goal: Goal; onE
       const res = await fetch("/api/live", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, goal }),
+        body: JSON.stringify({ goal }),
         signal: abort.signal,
       });
       const data = (await res.json().catch(() => ({}))) as { token?: string; model?: string; offline?: boolean; error?: string };
@@ -470,7 +471,7 @@ export function LiveVoice({ name, goal, onEnd }: { name: string; goal: Goal; onE
       }
       session = live;
       sessionRef.current = live;
-      live.sendClientContent({ turns: [{ role: "user", parts: [{ text: OPENING_TURN }] }], turnComplete: true });
+      live.sendClientContent({ turns: [{ role: "user", parts: [{ text: openingTurn(name) }] }], turnComplete: true });
     };
 
     start().catch((e: unknown) => {
@@ -509,7 +510,8 @@ export function LiveVoice({ name, goal, onEnd }: { name: string; goal: Goal; onE
 
   const finish = useCallback(() => {
     const started = connectedAtRef.current;
-    const minutes = started ? Math.max(1, Math.round((Date.now() - started) / 60000)) : 1;
+    // Never log rest for a session that never connected.
+    const minutes = started ? Math.max(1, Math.round((Date.now() - started) / 60000)) : 0;
     onEnd(minutes);
   }, [onEnd]);
 
@@ -540,20 +542,12 @@ export function LiveVoice({ name, goal, onEnd }: { name: string; goal: Goal; onE
           ref={orbRef}
           className={cn(
             "relative h-[200px] w-[200px] rounded-full will-change-transform",
-            "shadow-[0_30px_80px_-30px_rgba(61,90,79,0.45)] transition-opacity duration-700",
+            "transition-opacity duration-700",
             phase === "connecting" || phase === "ended" || phase === "error" ? "opacity-70" : "opacity-100",
           )}
-          style={{
-            transform: "scale(0.9)",
-            background: [
-              "radial-gradient(circle at 34% 28%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 42%)",
-              "radial-gradient(circle at 72% 78%, var(--clay-soft) 0%, rgba(241,229,216,0) 55%)",
-              "radial-gradient(circle at 30% 80%, rgba(157,179,165,0.55) 0%, rgba(157,179,165,0) 60%)",
-              "radial-gradient(circle at 50% 50%, var(--moss-soft) 0%, var(--sage) 120%)",
-            ].join(", "),
-          }}
+          style={{ transform: "scale(0.9)" }}
         >
-          <div className="grain absolute inset-0 rounded-full" />
+          <Illustration kind="breath" className="h-full w-full" />
         </div>
       </div>
 

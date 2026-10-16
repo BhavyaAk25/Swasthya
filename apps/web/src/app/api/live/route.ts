@@ -1,10 +1,9 @@
 import { z } from "zod";
 
-import { clean, createLiveToken, fail, gemini, json, LIVE_MODEL, offline } from "@/lib/server/gemini";
+import { createLiveToken, fail, gemini, json, LIVE_MODEL, offline } from "@/lib/server/gemini";
 import type { LiveToken } from "@/lib/types";
 
 const body = z.object({
-  name: z.string().max(40).default("friend"),
   goal: z.enum(["consistency", "strength", "recovery"]).default("consistency"),
 });
 
@@ -15,7 +14,7 @@ export async function POST(request: Request) {
   if (!parsed.success) return fail("Invalid request.");
 
   const systemInstruction = [
-    `You are Swasthya, a calm live recovery coach speaking with ${clean(parsed.data.name, 40) || "the user"}.`,
+    "You are Swasthya, a calm live recovery coach. The user may tell you their name in their first message.",
     `Their goal is ${parsed.data.goal}.`,
     "Guide a short relaxing breath and body-scan session in a slow, warm voice.",
     "Keep each turn to one or two sentences and ask at most one question at a time.",

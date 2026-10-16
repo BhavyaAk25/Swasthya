@@ -109,27 +109,12 @@ const tones = {
   dusk: "from-[#e9e3ea] via-[#ddd3df] to-[#c9bccd]",
 };
 
-/** Image area that shows a calm gradient placeholder until a real `src` is provided. */
-export function ImageSlot({
-  src,
-  alt = "",
-  tone = "sage",
-  label,
-  className,
-  children,
-}: {
-  src?: string | null;
-  alt?: string;
-  tone?: keyof typeof tones;
-  label?: string;
-  className?: string;
-  children?: React.ReactNode;
-}) {
+/** Image area that shows a calm gradient placeholder until (or if) the image fails to load. */
+export function ImageSlot({ src, alt = "", tone = "sage", className }: { src?: string | null; alt?: string; tone?: keyof typeof tones; className?: string }) {
   const [failed, setFailed] = useState(false);
-  const show = src && !failed;
   return (
     <div className={cn("relative isolate overflow-hidden rounded-[28px] bg-gradient-to-br", tones[tone], className)}>
-      {show ? (
+      {src && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={alt} onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
       ) : (
@@ -137,14 +122,8 @@ export function ImageSlot({
           <div className="absolute -left-1/4 top-1/4 h-3/4 w-3/4 rounded-full bg-white/30 blur-3xl" />
           <div className="absolute -bottom-1/4 right-0 h-2/3 w-2/3 rounded-full bg-white/20 blur-2xl" />
           <div className="grain absolute inset-0" />
-          {label ? (
-            <div className="absolute right-4 top-4 rounded-full bg-white/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink/50 backdrop-blur">
-              {label}
-            </div>
-          ) : null}
         </>
       )}
-      {children ? <div className="relative z-10 h-full">{children}</div> : null}
     </div>
   );
 }
@@ -155,14 +134,12 @@ export function Ring({
   size = 120,
   stroke = 8,
   color = "var(--moss)",
-  track = "var(--surface-2)",
   children,
 }: {
   value: number; // 0..1
   size?: number;
   stroke?: number;
   color?: string;
-  track?: string;
   children?: React.ReactNode;
 }) {
   const r = (size - stroke) / 2;
@@ -171,7 +148,7 @@ export function Ring({
   return (
     <div className="relative grid place-items-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--surface-2)" strokeWidth={stroke} />
         <motion.circle
           cx={size / 2}
           cy={size / 2}
@@ -284,20 +261,8 @@ export function Sheet({
   );
 }
 
-export function Stat({ label, value, unit }: { label: string; value: string | number; unit?: string }) {
-  return (
-    <div>
-      <div className="eyebrow">{label}</div>
-      <div className="mt-1.5 flex items-baseline gap-1">
-        <span className="font-display text-3xl tabular-nums">{value}</span>
-        {unit ? <span className="text-sm text-ink-faint">{unit}</span> : null}
-      </div>
-    </div>
-  );
-}
-
 /** Small toast for confirmations; auto-dismisses. */
-export function Toast({ message, onDone }: { message: string | null; onDone: () => void }) {
+export function Toast({ message, onDone }: { message: { id: number; text: string } | null; onDone: () => void }) {
   useEffect(() => {
     if (!message) return;
     const t = setTimeout(onDone, 2600);
@@ -309,14 +274,14 @@ export function Toast({ message, onDone }: { message: string | null; onDone: () 
       <AnimatePresence>
         {message ? (
           <motion.div
-            key={message}
+            key={message.id}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={calm}
             className="rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-[var(--shadow-md)]"
           >
-            {message}
+            {message.text}
           </motion.div>
         ) : null}
       </AnimatePresence>

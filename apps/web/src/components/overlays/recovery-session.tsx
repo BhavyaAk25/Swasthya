@@ -6,9 +6,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useApp } from "@/components/app";
 import { LiveVoice } from "@/components/overlays/live-voice";
-import { Button, calm, IconButton, Ring, Sheet } from "@/components/ui";
+import { RestoreScene } from "@/components/three";
+import { Bar, Button, calm, IconButton, Sheet } from "@/components/ui";
+import { BreathingTide } from "@/components/visuals";
 import { stepsFor } from "@/lib/recovery";
 import { actions } from "@/lib/store";
+import { cancelVoice, prefetchVoice, say, voiceSupported } from "@/lib/voice";
+import { FIXED, nidraParts } from "@/lib/voice-phrases";
 
 export function RecoverySession({
   open,
@@ -23,6 +27,11 @@ export function RecoverySession({
 }) {
   const { data, toast } = useApp();
   const profile = data.profile!;
+  // Seconds actually spent playing (skips don't count), so closing early still saves honest minutes.
+  const played = useRef(0);
+  useEffect(() => {
+    if (open) played.current = 0;
+  }, [open]);
 
   const finish = useCallback(
     (mins: number, kind: "guided" | "live") => {
@@ -34,26 +43,20 @@ export function RecoverySession({
     },
     [onClose, toast],
   );
+  const close = useCallback(() => (live ? onClose() : finish(Math.floor(played.current / 60), "guided")), [live, onClose, finish]);
 
   return (
-    <Sheet open={open} onClose={onClose} title={live ? "Live reset" : "Yoga nidra"}>
+    <Sheet open={open} onClose={close} title={live ? "Live reset" : "Yoga nidra"}>
       {live ? (
         <LiveVoice name={profile.name} goal={profile.goal} onEnd={(m) => finish(m, "live")} />
       ) : (
-        <Guided minutes={minutes} onFinish={(m) => finish(m, "guided")} />
+        <Guided minutes={minutes} played={played} onFinish={() => finish(Math.round(played.current / 60), "guided")} />
       )}
     </Sheet>
   );
 }
 
-function pickVoice() {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
-  const voices = window.speechSynthesis.getVoices().filter((v) => v.lang.startsWith("en"));
-  const preferred = ["Samantha", "Google UK English Female", "Karen", "Moira", "Serena", "Microsoft Aria", "Microsoft Jenny"];
-  return voices.find((v) => preferred.some((p) => v.name.includes(p))) ?? voices.find((v) => v.localService) ?? voices[0] ?? null;
-}
-
-function Guided({ minutes, onFinish }: { minutes: number; onFinish: (minutes: number) => void }) {
+function Guided({ minutes, played, onFinish }: { minutes: number; played: React.RefObject<number>; onFinish: () => void }) {
   const steps = useMemo(() => stepsFor(minutes), [minutes]);
   const total = steps.reduce((s, x) => s + x.seconds, 0);
   const [playing, setPlaying] = useState(false);
@@ -61,7 +64,7 @@ function Guided({ minutes, onFinish }: { minutes: number; onFinish: (minutes: nu
   const [voice, setVoice] = useState(true);
   const lastTick = useRef<number | null>(null);
   const spokenStep = useRef(-1);
-  const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
+  const [canSpeak] = useState(voiceSupported);
 
   // Which step are we in?
   let acc = 0;
@@ -87,40 +90,39 @@ function Guided({ minutes, onFinish }: { minutes: number; onFinish: (minutes: nu
       const now = performance.now();
       const dt = (now - (lastTick.current ?? now)) / 1000;
       lastTick.current = now;
+      played.current += dt;
       setElapsed((e) => Math.min(total, e + dt));
     }, 250);
     return () => clearInterval(t);
-  }, [playing, complete, total]);
+  }, [playing, complete, total, played]);
 
-  // Speak each cue once as its step begins.
+  // Warm every recorded cue so the voice starts without a network pause.
+  useEffect(() => {
+    prefetchVoice([...steps.flatMap((s) => nidraParts(s.cue)), FIXED.rested]);
+  }, [steps]);
+
+  // Speak each cue once as its step begins: one sentence at a time, with unhurried pauses.
   useEffect(() => {
     if (!canSpeak || !playing || !voice || complete || spokenStep.current === index) return;
     spokenStep.current = index;
-    const synth = window.speechSynthesis;
-    synth.cancel();
-    const u = new SpeechSynthesisUtterance(step.cue);
-    const v = pickVoice();
-    if (v) u.voice = v;
-    u.rate = 0.82;
-    u.pitch = 0.95;
-    u.volume = 0.9;
-    synth.speak(u);
+    void say(nidraParts(step.cue), { gap: 1.4, volume: 0.9, fallbackRate: 0.82 });
   }, [canSpeak, playing, voice, index, step.cue, complete]);
 
+  // A soft closing line when the session ends.
   useEffect(() => {
-    if (!canSpeak) return;
-    if (!playing || !voice) window.speechSynthesis.cancel();
-    if (!voice) spokenStep.current = -1;
-  }, [canSpeak, playing, voice]);
+    if (complete && canSpeak && voice) void say([FIXED.rested], { volume: 0.9, fallbackRate: 0.82 });
+  }, [complete, canSpeak, voice]);
 
-  useEffect(() => () => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
-  }, []);
+  useEffect(() => {
+    if (!playing || !voice) cancelVoice();
+    if (!voice) spokenStep.current = -1;
+  }, [playing, voice]);
+
+  useEffect(() => () => cancelVoice(), []);
 
   const remaining = Math.max(0, Math.ceil(total - elapsed));
   const mm = Math.floor(remaining / 60);
   const ss = String(remaining % 60).padStart(2, "0");
-  const inhale = elapsed % 10 < 4;
 
   function skip() {
     const next = steps.slice(0, index + 1).reduce((s, x) => s + x.seconds, 0);
@@ -131,13 +133,10 @@ function Guided({ minutes, onFinish }: { minutes: number; onFinish: (minutes: nu
   if (complete) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={calm} className="flex flex-col items-center py-8 text-center">
-        <div className="relative grid h-40 w-40 place-items-center">
-          <span className="absolute inset-0 rounded-full bg-moss-soft" />
-          <span className="absolute inset-8 rounded-full bg-moss" style={{ animation: "breathe 8s ease-in-out infinite" }} />
-        </div>
+        <div className="h-40 w-40"><BreathingTide level={0.5} /></div>
         <div className="mt-8 font-display text-3xl">Well rested</div>
-        <p className="mt-2 text-ink-soft">{minutes} minutes of stillness.</p>
-        <Button size="lg" className="mt-8 w-full max-w-xs" onClick={() => onFinish(minutes)}>
+        <p className="mt-2 text-ink-soft">Take your time getting up.</p>
+        <Button size="lg" className="mt-8 w-full max-w-xs" onClick={onFinish}>
           Done
         </Button>
       </motion.div>
@@ -145,29 +144,12 @@ function Guided({ minutes, onFinish }: { minutes: number; onFinish: (minutes: nu
   }
 
   return (
-    <div className="flex flex-col items-center pb-2 pt-4 text-center">
-      <Ring value={elapsed / total} size={248} stroke={3} color="var(--sage)" track="var(--surface-2)">
-        <motion.div
-          className="h-[168px] w-[168px] rounded-full"
-          style={{ background: "radial-gradient(circle at 35% 30%, #fbfaf6 0%, #dfe7e1 45%, #b9c9be 100%)" }}
-          animate={playing ? { scale: [0.78, 1, 1, 0.78] } : { scale: 0.86 }}
-          transition={playing ? { duration: 10, times: [0, 0.4, 0.5, 1], repeat: Infinity, ease: "easeInOut" } : calm}
-        />
-      </Ring>
-
-      <div className="mt-6 h-5">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={playing ? (inhale ? "in" : "out") : "paused"}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="eyebrow"
-          >
-            {playing ? (inhale ? "Breathe in" : "Breathe out") : elapsed > 0 ? "Paused" : `${minutes} minutes`}
-          </motion.div>
-        </AnimatePresence>
+    <div className="flex flex-col items-center pb-2 pt-1 text-center">
+      <div className="relative w-full overflow-hidden rounded-[24px] border border-line bg-[radial-gradient(120%_110%_at_60%_20%,#f8f5f1_0%,#ece7ee_60%,#e0d9e3_100%)]">
+        <RestoreScene cycle={elapsed % 10} playing={playing} className="h-[300px] w-full sm:h-[340px]" />
+      </div>
+      <div className="mt-4 w-full">
+        <Bar value={elapsed / total} color="var(--sage)" />
       </div>
 
       <div className="mt-4 min-h-[112px] max-w-sm">
@@ -204,7 +186,7 @@ function Guided({ minutes, onFinish }: { minutes: number; onFinish: (minutes: nu
           {mm}:{ss} left
         </span>
         {elapsed >= 60 ? (
-          <button type="button" onClick={() => onFinish(Math.round(elapsed / 60))} className="font-medium hover:text-ink">
+          <button type="button" onClick={onFinish} className="font-medium hover:text-ink">
             End &amp; save
           </button>
         ) : (

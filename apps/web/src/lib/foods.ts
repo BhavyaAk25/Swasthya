@@ -10,7 +10,7 @@ export interface Food {
 }
 
 /** Rough per-serving estimates. Good enough for a calm daily picture, not a lab result. */
-export const FOODS: Food[] = [
+const FOODS: Food[] = [
   { id: "egg", name: "Egg", serving: "1 large", calories: 78, protein: 6, aliases: ["eggs", "boiled egg", "omelette"] },
   { id: "toast", name: "Toast", serving: "1 slice", calories: 80, protein: 3, aliases: ["bread", "slice"] },
   { id: "oats", name: "Oats", serving: "1 bowl", calories: 150, protein: 5, aliases: ["oatmeal", "porridge"] },

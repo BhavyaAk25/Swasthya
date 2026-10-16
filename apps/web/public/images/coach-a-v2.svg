@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="76 20 168 200" role="img" aria-labelledby="title desc">
+    <title id="title">Coach A · sprout guide</title><desc id="desc">An original nonhuman ceramic companion; friendly and consistent with the 3D characters.</desc><defs>
+ <radialGradient id="porcelain" cx="30%" cy="15%" r="95%"><stop stop-color="#fffef9" /><stop offset=".58" stop-color="#eee9de" /><stop offset="1" stop-color="#c8c3b5" /></radialGradient>
+ <linearGradient id="bowl" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#fffdf5" /><stop offset=".5" stop-color="#eee8db" /><stop offset="1" stop-color="#ccc3b2" /></linearGradient>
+ <radialGradient id="sage" cx="25%" cy="20%" r="85%"><stop stop-color="#c3d5c5" /><stop offset=".52" stop-color="#9bb6a3" /><stop offset="1" stop-color="#628575" /></radialGradient>
+ <radialGradient id="moss" cx="20%" cy="15%" r="95%"><stop stop-color="#7c9b86" /><stop offset=".5" stop-color="#4d7460" /><stop offset="1" stop-color="#304f43" /></radialGradient>
+ <linearGradient id="clay" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#efc499" /><stop offset="1" stop-color="#bd8861" /></linearGradient>
+ <radialGradient id="lilac" cx="30%" cy="15%" r="95%"><stop stop-color="#f2edf2" /><stop offset=".6" stop-color="#d8cedd" /><stop offset="1" stop-color="#aa9eb3" /></radialGradient>
+ <radialGradient id="pearl"><stop stop-color="#fffdf2" /><stop offset=".68" stop-color="#f3e6d2" /><stop offset="1" stop-color="#d6bea0" /></radialGradient>
+ <linearGradient id="petal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4e2d6" stop-opacity=".9" /><stop offset=".6" stop-color="#9ebba9" stop-opacity=".82" /><stop offset="1" stop-color="#658b77" stop-opacity=".87" /></linearGradient>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e5dce6" /><stop offset="1" stop-color="#f5ecdf" /></linearGradient>
+ <filter id="shadow" x="-50%" y="-50%" width="200%" height="220%"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#3d5145" flood-opacity=".14" /></filter>
+ <filter id="smallShadow" x="-50%" y="-50%" width="200%" height="220%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#354e40" flood-opacity=".15" /></filter>
+ <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="5" /></filter>
+ <clipPath id="disc"><circle cx="160" cy="117" r="80" /></clipPath>
+ <clipPath id="food"><ellipse cx="160" cy="118" rx="70" ry="25" /></clipPath>
+</defs>
+<ellipse cx="160" cy="208" rx="52" ry="7" fill="#526956" opacity=".12" /><g filter="url(#shadow)"><path d="M160 99 C106 95 97 132 108 166 C120 199 195 204 212 168 C226 132 209 102 160 99Z" fill="url(#porcelain)" /><path d="M160 110 Q156 88 164 64" stroke="#5c8068" stroke-width="4" fill="none" stroke-linecap="round" /><path d="M161 92 C131 92 118 64 128 53 C148 49 171 70 161 92Z" fill="url(#sage)" /><path d="M163 77 C164 48 195 38 205 49 C211 72 183 86 163 77Z" fill="url(#moss)" /><path d="M130 60 Q146 67 160 88 M199 52 Q181 59 164 75" fill="none" stroke="#dae5cd" stroke-width="1.2" opacity=".7" /><ellipse cx="142" cy="145" rx="3.8" ry="5.5" fill="#3d5a4f" /><ellipse cx="178" cy="145" rx="3.8" ry="5.5" fill="#3d5a4f" /><path d="M151 160 Q160 168 169 160" stroke="#607965" stroke-width="2.7" fill="none" stroke-linecap="round" /><ellipse cx="129" cy="159" rx="7" ry="4" fill="#d9b696" opacity=".4" /><ellipse cx="191" cy="159" rx="7" ry="4" fill="#d9b696" opacity=".4" /></g></svg>

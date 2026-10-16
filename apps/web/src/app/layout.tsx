@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Manrope } from "next/font/google";
+import localFont from "next/font/local";
 
 import "./globals.css";
 
-const display = Fraunces({ variable: "--font-display", subsets: ["latin"], weight: ["300", "400", "500"] });
-const sans = Manrope({ variable: "--font-sans", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const display = localFont({ src: "./fonts/Fraunces.woff2", variable: "--font-display", weight: "300 500", display: "swap" });
+const sans = localFont({ src: "./fonts/Manrope.woff2", variable: "--font-sans", weight: "400 700", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Swasthya",
   description: "A calm space to eat well, move daily and recover deeply.",
+  icons: { icon: { url: "/brand/swasthya-lotus.svg", type: "image/svg+xml" } },
 };
 
 export const viewport: Viewport = {

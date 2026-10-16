@@ -31,6 +31,16 @@ function Flow({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [picked, setPicked] = useState<{ food: Food; qty: number }[]>([]);
+  const request = useRef<AbortController | null>(null);
+  const saving = useRef(false);
+
+  useEffect(() => () => request.current?.abort(), []);
+
+  function pickInstead() {
+    request.current?.abort();
+    setNotice(null);
+    setPhase("pick");
+  }
 
   const analyze = useCallback(
     async (raw: string) => {
@@ -42,10 +52,13 @@ function Flow({ onClose }: { onClose: () => void }) {
         return;
       }
       setPhase("analyzing");
+      const controller = new AbortController();
+      request.current = controller;
       try {
         const res = await fetch("/api/meal", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)]),
           body: JSON.stringify({ image }),
         });
         const body = await res.json().catch(() => null);
@@ -55,6 +68,7 @@ function Flow({ onClose }: { onClose: () => void }) {
         setPortion(1);
         setPhase("review");
       } catch {
+        if (controller.signal.aborted) return; // the user chose to pick, or the sheet closed
         setNotice("Couldn't read the photo. Pick what's on the plate.");
         setPhase("pick");
       }
@@ -63,6 +77,8 @@ function Flow({ onClose }: { onClose: () => void }) {
   );
 
   async function save(meal: MealEstimate, source: "photo" | "quick") {
+    if (saving.current) return; // a double tap logs once
+    saving.current = true;
     const thumb = photo ? await shrinkImage(photo, 320, 0.7).catch(() => undefined) : undefined;
     actions.addMeal({ ...meal, source: photo ? "photo" : source, photo: thumb });
     toast(`Logged ${meal.name}`);
@@ -95,6 +111,11 @@ function Flow({ onClose }: { onClose: () => void }) {
             </div>
             <div className="flex items-center justify-center gap-2 text-sm text-ink-soft">
               <Sparkles className="h-4 w-4 text-sage" /> Looking at your plate
+            </div>
+            <div className="flex justify-center">
+              <Button variant="ghost" size="sm" onClick={pickInstead}>
+                Pick foods instead
+              </Button>
             </div>
           </div>
         )}
