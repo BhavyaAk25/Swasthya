@@ -8,7 +8,7 @@ import { useApp } from "@/components/app";
 import { calm, Card, fade } from "@/components/ui";
 import { actions, checkInFor } from "@/lib/store";
 import type { CheckIn, Mood } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, haptic } from "@/lib/utils";
 
 const GLASSES = 8;
 const SLEEP_OPTIONS = [5, 6, 7, 8, 9] as const;
@@ -104,7 +104,7 @@ function Water({ value }: { value: number }) {
             transition={calm}
             aria-label={`${n} ${n === 1 ? "glass" : "glasses"} of water`}
             aria-pressed={filled}
-            onClick={() => actions.setCheckIn({ water: n === value ? n - 1 : n })}
+            onClick={() => { haptic(); actions.setCheckIn({ water: n === value ? n - 1 : n }); }}
             className="grid h-12 min-w-0 max-w-11 flex-1 place-items-center rounded-2xl hover:bg-surface-2/70"
           >
             <Glass filled={filled} delay={filled ? Math.max(0, i - (value - 1)) * 0.04 : 0} />
@@ -179,7 +179,7 @@ function Sleep({ value }: { value: number | undefined }) {
               type="button"
               aria-pressed={on}
               aria-label={h === 9 ? "9 or more hours" : `${h} hours`}
-              onClick={() => actions.setCheckIn({ sleep: on ? undefined : h })}
+              onClick={() => { haptic(); actions.setCheckIn({ sleep: on ? undefined : h }); }}
               className={cn(
                 "relative h-9 min-w-0 flex-1 rounded-full text-[13px] font-medium tabular-nums",
                 on ? "text-ink" : "text-ink-soft hover:text-ink",
@@ -242,7 +242,7 @@ function MoodPicker({ value }: { value: Mood | undefined }) {
               transition={calm}
               aria-label={`Mood ${m} of 5`}
               aria-pressed={on}
-              onClick={() => actions.setCheckIn({ mood: on ? undefined : m })}
+              onClick={() => { haptic(); actions.setCheckIn({ mood: on ? undefined : m }); }}
               className={cn(
                 "relative grid h-12 min-w-0 max-w-14 flex-1 place-items-center rounded-full",
                 on ? "text-moss" : "text-ink-faint hover:text-ink-soft",

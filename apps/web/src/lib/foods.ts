@@ -118,8 +118,20 @@ export function estimateFromItems(items: ParsedItem[], confidence: Confidence = 
   };
 }
 
-export function targetsFor(goal: string) {
-  if (goal === "strength") return { calorieTarget: 2400, proteinTarget: 130 };
-  if (goal === "recovery") return { calorieTarget: 2000, proteinTarget: 90 };
-  return { calorieTarget: 2100, proteinTarget: 100 };
+/**
+ * Daily targets for a goal, personalised by body weight when given. Rough, general estimates
+ * (about 28-33 kcal and 1.0-1.6 g protein per kg), not medical or dietetic advice.
+ */
+export function targetsFor(goal: string, weightKg?: number) {
+  if (!weightKg || weightKg < 30 || weightKg > 250) {
+    if (goal === "strength") return { calorieTarget: 2400, proteinTarget: 130 };
+    if (goal === "recovery") return { calorieTarget: 2000, proteinTarget: 90 };
+    return { calorieTarget: 2100, proteinTarget: 100 };
+  }
+  const kcalPerKg = goal === "strength" ? 33 : goal === "recovery" ? 28 : 30;
+  const proteinPerKg = goal === "strength" ? 1.6 : goal === "recovery" ? 1.0 : 1.2;
+  return {
+    calorieTarget: Math.min(4000, Math.max(1200, Math.round((weightKg * kcalPerKg) / 50) * 50)),
+    proteinTarget: Math.min(250, Math.max(40, Math.round((weightKg * proteinPerKg) / 5) * 5)),
+  };
 }

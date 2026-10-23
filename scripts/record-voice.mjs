@@ -23,6 +23,7 @@ const { NIDRA_STEPS } = await import(lib("recovery.ts"));
 const { CONSTRAINTS, SPLITS, adapt, weekFor } = await import(lib("plan.ts"));
 const { buildSteps } = await import(lib("workout.ts"));
 const { FIXED, nidraParts, phraseKey, restCue, workCue } = await import(lib("voice-phrases.ts"));
+const { FORM } = await import(lib("form.ts"));
 
 const VOICE = process.env.VOICE ?? "bf_emma";
 const OUT = path.join(web, "public/audio/voice");
@@ -42,7 +43,7 @@ for (const split of SPLITS) {
     for (const constraint of [undefined, ...CONSTRAINTS.map((c) => c.id)]) {
       const steps = buildSteps(adapt(session, constraint));
       for (const step of steps) {
-        for (const p of workCue(step)) add(p, 0.95);
+        for (const p of workCue(step, FORM[step.exerciseId]?.cues[0])) add(p, 0.95);
         for (const p of restCue(step)) add(p, 0.95);
       }
     }

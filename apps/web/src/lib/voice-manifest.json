@@ -101,6 +101,16 @@
       "speed": 0.8,
       "seconds": 1.53
     },
+    "ease-into-each-position": {
+      "text": "Ease into each position.",
+      "speed": 0.95,
+      "seconds": 1.64
+    },
+    "elbows-under-shoulders-body-long": {
+      "text": "Elbows under shoulders, body long.",
+      "speed": 0.95,
+      "seconds": 2.22
+    },
     "feel-the-whole-body-at-once-resting-supported-completely-at-ease": {
       "text": "Feel the whole body at once, resting, supported, completely at ease.",
       "speed": 0.8,
@@ -116,20 +126,45 @@
       "speed": 0.95,
       "seconds": 1.26
     },
+    "hands-under-shoulders-body-in-one-line": {
+      "text": "Hands under shoulders, body in one line.",
+      "speed": 0.95,
+      "seconds": 2.52
+    },
     "heavy-and-still": {
       "text": "Heavy and still.",
       "speed": 0.8,
       "seconds": 1.57
+    },
+    "hinge-at-the-hips-knees-soft": {
+      "text": "Hinge at the hips, knees soft.",
+      "speed": 0.95,
+      "seconds": 1.85
+    },
+    "hinge-forward-with-a-flat-back": {
+      "text": "Hinge forward with a flat back.",
+      "speed": 0.95,
+      "seconds": 1.88
     },
     "hip-openers": {
       "text": "Hip openers.",
       "speed": 0.95,
       "seconds": 1.3
     },
+    "hips-high-head-between-the-arms": {
+      "text": "Hips high, head between the arms.",
+      "speed": 0.95,
+      "seconds": 2.04
+    },
     "if-thoughts-come-let-them-pass-like-clouds": {
       "text": "If thoughts come, let them pass like clouds.",
       "speed": 0.8,
       "seconds": 3.05
+    },
+    "inhale-let-the-belly-drop-and-look-up": {
+      "text": "Inhale, let the belly drop and look up.",
+      "speed": 0.95,
+      "seconds": 2.31
     },
     "let-each-part-soften": {
       "text": "Let each part soften.",
@@ -150,6 +185,16 @@
       "text": "Lie down or sit back.",
       "speed": 0.8,
       "seconds": 2.13
+    },
+    "lower-back-gently-pressed-down": {
+      "text": "Lower back gently pressed down.",
+      "speed": 0.95,
+      "seconds": 2.05
+    },
+    "lower-straight-down-torso-upright": {
+      "text": "Lower straight down, torso upright.",
+      "speed": 0.95,
+      "seconds": 2.22
     },
     "move-your-fingers-and-toes": {
       "text": "Move your fingers and toes.",
@@ -181,6 +226,11 @@
       "speed": 0.95,
       "seconds": 1.02
     },
+    "press-through-your-heels-lift-the-hips": {
+      "text": "Press through your heels, lift the hips.",
+      "speed": 0.95,
+      "seconds": 1.99
+    },
     "push-ups": {
       "text": "Push-ups.",
       "speed": 0.95,
@@ -210,6 +260,16 @@
       "text": "Reverse lunges.",
       "speed": 0.95,
       "seconds": 1.36
+    },
+    "rise-slowly-onto-the-balls-of-your-feet": {
+      "text": "Rise slowly onto the balls of your feet.",
+      "speed": 0.95,
+      "seconds": 2.41
+    },
+    "rotate-from-the-upper-back": {
+      "text": "Rotate from the upper back.",
+      "speed": 0.95,
+      "seconds": 1.8
     },
     "session-complete-well-done": {
       "text": "Session complete. Well done.",
@@ -266,10 +326,20 @@
       "speed": 0.95,
       "seconds": 1.33
     },
+    "sit-back-and-down-chest-tall": {
+      "text": "Sit back and down, chest tall.",
+      "speed": 0.95,
+      "seconds": 1.94
+    },
     "split-squats": {
       "text": "Split squats.",
       "speed": 0.95,
       "seconds": 1.19
+    },
+    "step-back-softly-hips-square": {
+      "text": "Step back softly, hips square.",
+      "speed": 0.95,
+      "seconds": 1.89
     },
     "thoracic-twists": {
       "text": "Thoracic twists.",

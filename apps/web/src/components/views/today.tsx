@@ -1,16 +1,17 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, ArrowUpRight, Camera, Check, Flame, Hand, Play } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Camera, Check, Flame, Hand, Moon, Play } from "lucide-react";
 
 import { useApp } from "@/components/app";
 import { CheckInCard } from "@/components/checkin";
 import { CoachNote } from "@/components/coach-note";
-import { HeroScene } from "@/components/three";
+import { Milestone } from "@/components/milestone";
+import { HeroScene, RestoreScene } from "@/components/three";
 import { Bar, Button, calm, Card, Ring } from "@/components/ui";
 import { BreathingTide } from "@/components/visuals";
 import { streak, todayOf, totalsFor } from "@/lib/store";
-import { cn, countdown, greeting, lastNDays, longDate, nextAt, weekdayShort } from "@/lib/utils";
+import { cn, dayPart, greeting, lastNDays, longDate, weekdayShort, whenLabel } from "@/lib/utils";
 
 const stagger = {
   hidden: {},
@@ -31,6 +32,9 @@ export function TodayView() {
   const completed = t.day.completed.filter((id) => session.exercises.some((e) => e.id === id)).length;
   const progress = session.exercises.length ? completed / session.exercises.length : 0;
   const note = "note" in session ? (session.note as string | undefined) : undefined;
+  // From an hour before the reset time (and late at night), the day's hero becomes the wind-down.
+  const part = dayPart(profile.recoveryTime);
+  const windDown = part !== "day" && !t.recovered;
 
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6 lg:space-y-8">
@@ -55,6 +59,23 @@ export function TodayView() {
         className="relative overflow-hidden rounded-[32px] border border-line bg-bg"
       >
         <div className="grid [&>*]:min-w-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+          {windDown ? (
+          <div className="order-2 flex flex-col justify-center px-6 pb-7 pt-1 sm:px-9 sm:pb-9 lg:order-1 lg:py-12 lg:pl-12 lg:pr-4">
+            <div className="eyebrow">{part === "night" ? "Late night" : "This evening"}</div>
+            <h2 className="mt-2 font-display text-4xl leading-[1.05] sm:text-5xl">Wind down</h2>
+            <p className="mt-2 text-ink-soft">Yoga nidra · 10 min · lights low</p>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Button size="lg" icon={Moon} onClick={() => open({ recovery: { minutes: 10 } })}>
+                Begin reset
+              </Button>
+              {!done && part === "wind" ? (
+                <Button variant="ghost" onClick={() => go("move")}>
+                  Today&apos;s practice <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : null}
+            </div>
+          </div>
+          ) : (
           <div className="order-2 flex flex-col justify-center px-6 pb-7 pt-1 sm:px-9 sm:pb-9 lg:order-1 lg:py-12 lg:pl-12 lg:pr-4">
             <div className="eyebrow">{session.rest ? "Gentle day" : "Today's practice"}</div>
             <h2 className="mt-2 font-display text-4xl leading-[1.05] sm:text-5xl">{session.title}</h2>
@@ -98,11 +119,14 @@ export function TodayView() {
               <Hand className="h-3.5 w-3.5" strokeWidth={1.6} /> Tap a friend to train with them
             </p>
           </div>
+          )}
           <div className="order-1 h-[290px] sm:h-[400px] lg:order-2 lg:h-[500px]">
-            <HeroScene className="h-full w-full" active={!covered} />
+            {windDown ? <RestoreScene active={!covered} className="h-full w-full" /> : <HeroScene className="h-full w-full" active={!covered} />}
           </div>
         </div>
       </motion.section>
+
+      <Milestone streak={days} />
 
       {/* One calm suggestion: check-in rule first, else the AI coach note */}
       <CoachNote />
@@ -166,7 +190,7 @@ export function TodayView() {
             <div className="min-w-0">
               <div className="font-display text-2xl">{t.recovered ? "Rested" : "Evening reset"}</div>
               <div className="mt-1 text-sm text-ink-soft">
-                {t.recovered ? `${t.recoveryMinutes} min today` : countdown(nextAt(profile.recoveryTime))}
+                {t.recovered ? `${t.recoveryMinutes} min today` : whenLabel(profile.recoveryTime)}
               </div>
             </div>
           </div>

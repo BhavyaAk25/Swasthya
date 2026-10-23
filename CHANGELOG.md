@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-10-23: Polish pass
+### Looks
+- Every exercise and rest scene now stands directly on its panel, with no white or beige box: all clips were whitened (`scripts/media/normalize_plate.py`) and render through the canvas plate on flat stage colours.
+- Today follows the clock: from wind-down time the hero becomes "Wind down" with the friends resting, and the reset is labelled Today / Tonight / Tomorrow correctly.
+- Evening tones: a warmer, softer palette after wind-down (Settings can turn it off).
+- Nourish: the bowl is the full-width hero (stock photo removed).
+- Streak milestones (3, 7, 14, 21, 30, 50, 100 days) celebrate with both friends' happy pose; light haptics on phones.
+- Fonts subset to what the site uses: 242 KB down to 100 KB.
+
+### Use
+- Personal calorie and protein targets from an optional weight at onboarding (kg or lb).
+- Form cues and one common mistake for all 14 moves, on Move and in the player; the key cue is spoken (14 new Kokoro clips).
+- Undo for logging and removing meals and for "Mark done"; one session button on Move.
+- Nourish: "Again" chips for recent meals, meals grouped by time of day, change a portion after logging.
+- Installable app with offline support; optional wind-down reminder notification.
+- Back up / Restore all data from Settings.
+- Progress: best day only after three active days; insights (sleep vs mood, protein trend, training day) only once there is enough data.
+
+### AI
+- The daily coach note follows the time of day: rest only late at night (enforced on the server), wind-down in the evening, a welcome on day one.
+
 ## 2026-10-15: Live on Vercel
 - The site is now hosted on Vercel at https://swasthya-bhavya.vercel.app, linked to GitHub. Every push to `main` deploys, with no separate publish step.
 - `npm run release` now only verifies (the ChatGPT Sites steps moved behind `--sites`). The `/release-site` skill pushes and confirms the Vercel deployment.

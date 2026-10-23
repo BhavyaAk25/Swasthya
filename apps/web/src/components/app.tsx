@@ -22,7 +22,7 @@ import { RestoreView } from "@/components/views/restore";
 import { TodayView } from "@/components/views/today";
 import { actions, useData } from "@/lib/store";
 import type { AiStatus, AppData, Tab } from "@/lib/types";
-import { cn, dateKey } from "@/lib/utils";
+import { cn, dateKey, dayPart } from "@/lib/utils";
 
 type Overlay = null | "camera" | "squats" | "coach" | "settings" | "workout" | { recovery: { minutes: number; live?: boolean } };
 
@@ -31,7 +31,8 @@ interface Ctx {
   tab: Tab;
   go: (tab: Tab) => void;
   open: (overlay: Overlay) => void;
-  toast: (message: string) => void;
+  /** Show a short confirmation; pass `undo` to offer an Undo button. */
+  toast: (message: string, undo?: () => void) => void;
   ai: AiStatus;
   /** True while a sheet covers the page: background character and bowl scenes pause. */
   covered: boolean;
@@ -62,7 +63,7 @@ export function App() {
   const data = useData();
   const [tab, setTab] = useState<Tab>("today");
   const [overlay, setOverlay] = useState<Overlay>(null);
-  const [toastMsg, setToastMsg] = useState<{ id: number; text: string } | null>(null);
+  const [toastMsg, setToastMsg] = useState<{ id: number; text: string; undo?: () => void } | null>(null);
   const [ai, setAi] = useState<AiStatus>({ ai: false, live: false });
   const [day, setDay] = useState(() => dateKey());
 
@@ -77,11 +78,36 @@ export function App() {
     };
   }, []);
 
+  // Evening tones from wind-down time until early morning (unless turned off in Settings).
+  const recoveryTime = data?.profile?.recoveryTime;
+  const eveningTones = data?.profile?.eveningTones !== false;
+  useEffect(() => {
+    const apply = () => {
+      const evening = Boolean(recoveryTime) && eveningTones && dayPart(recoveryTime!) !== "day";
+      if (evening) document.documentElement.dataset.mode = "evening";
+      else delete document.documentElement.dataset.mode;
+    };
+    apply();
+    const t = setInterval(apply, 60_000);
+    document.addEventListener("visibilitychange", apply);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", apply);
+    };
+  }, [recoveryTime, eveningTones]);
+
   useEffect(() => {
     fetch("/api/status")
       .then((r) => (r.ok ? r.json() : null))
       .then((s: AiStatus | null) => s && setAi(s))
       .catch(() => undefined);
+  }, []);
+
+  // Offline support (production only, so development always sees fresh code).
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+    }
   }, []);
 
   // Warm the small character stills once the page is idle.
@@ -97,7 +123,7 @@ export function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
   const close = useCallback(() => setOverlay(null), []);
-  const toast = useCallback((text: string) => setToastMsg({ id: Date.now(), text }), []);
+  const toast = useCallback((text: string, undo?: () => void) => setToastMsg({ id: Date.now(), text, undo }), []);
   const clearToast = useCallback(() => setToastMsg(null), []);
 
   const ctx = useMemo<Ctx | null>(
@@ -187,7 +213,8 @@ function Shell({ tab, go, openOverlay }: { tab: Tab; go: (t: Tab) => void; openO
       </header>
 
       <main className="mx-auto w-full max-w-6xl px-5 pb-32 pt-4 sm:px-8 lg:px-12 lg:pb-16 lg:pt-12">
-        <RecoveryNudge />
+        {/* Today has its own wind-down hero, so the banner shows on the other tabs. */}
+        {tab === "today" ? null : <RecoveryNudge />}
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={tab}
@@ -266,6 +293,26 @@ function RecoveryNudge() {
     const diff = (now - at.getTime()) / 60000;
     return diff >= -10 && diff <= 120;
   }, [data, now]);
+
+  // Opt-in reminder: if the app sits in a background tab at wind-down time, notify once a day.
+  const reminders = Boolean(data.profile?.reminders);
+  useEffect(() => {
+    if (!show || !reminders || typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    if (document.visibilityState !== "hidden") return;
+    const key = dateKey();
+    try {
+      if (window.localStorage.getItem("swasthya:reminded") === key) return;
+      window.localStorage.setItem("swasthya:reminded", key);
+    } catch {
+      /* Without storage the reminder may repeat once; harmless. */
+    }
+    const options = { body: "Your 10-minute evening reset is ready.", tag: "wind-down", icon: "/brand/icon-192.png" };
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      void navigator.serviceWorker.ready.then((reg) => reg.showNotification("Time to wind down", options));
+    } else {
+      new Notification("Time to wind down", options);
+    }
+  }, [show, reminders, now]);
 
   return (
     <AnimatePresence initial={false}>

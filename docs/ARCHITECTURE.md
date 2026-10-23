@@ -33,7 +33,7 @@ lib/voice.ts            recorded-clip voice player
 
 ## Character media
 
-`components/characters/assets.ts` maps every plan exercise to its approved WebP poster and optional MP4 loop. `CharacterPlayer` is shared by the hero, exercise demonstrations and recovery; all media uses a fixed composition with `object-contain`. Hero movies are separate for each friend, count five decorative repetitions and finish on that friend's happy still. The ten-second rest movie and separate SVG breathing guide synchronize with the guided session's four-in/six-out clock. Hero assets have neutral white plates. With `blendPlate`, the player paints each still and video frame into one 2D canvas as *backdrop colour × artwork* (canvas `multiply`), using the opaque colour behind the scene, so the plate becomes exactly that colour in every browser. There are no CSS blend modes: some browsers drop `mix-blend-mode` for an animating layer, which showed a white panel (or a black block) behind one friend. The invisible `<video>` only decodes; `requestVideoFrameCallback` paints each new frame once. Exercise clips carry their own soft beige plate and use the plain poster/video path. Plank and hip opener have dedicated held-pose motion loops.
+`components/characters/assets.ts` maps every plan exercise to its approved WebP poster and optional MP4 loop. `CharacterPlayer` is shared by the hero, exercise demonstrations and recovery; all media uses a fixed composition with `object-contain`. Hero movies are separate for each friend, count five decorative repetitions and finish on that friend's happy still. The ten-second rest movie and separate SVG breathing guide synchronize with the guided session's four-in/six-out clock. Hero assets have neutral white plates. With `blendPlate`, the player paints each still and video frame into one 2D canvas as *backdrop colour × artwork* (canvas `multiply`), using the opaque colour behind the scene, so the plate becomes exactly that colour in every browser. There are no CSS blend modes: some browsers drop `mix-blend-mode` for an animating layer, which showed a white panel (or a black block) behind one friend. The invisible `<video>` only decodes; `requestVideoFrameCallback` paints each new frame once. Exercise and rest clips were whitened the same way (`scripts/media/normalize_plate.py`), so every scene uses this path on a flat stage colour; when evening tones change the page colour, a `MutationObserver` on `<html data-mode>` repaints the canvas. Plank and hip opener have dedicated held-pose motion loops.
 
 Scenes do not log workouts. Videos pause when offscreen, hidden or covered and resume from the same position. Reduced motion and media failures show the correct scene poster. The only remaining WebGL model is the original meal bowl, loaded lazily through `components/three/plate.tsx`.
 
@@ -42,3 +42,8 @@ The Next.js source also builds in a sanitized Vinext/Cloudflare Workers checkout
 ## Motion
 
 One shared spring (`calm` in `components/ui.tsx`) drives every movement: no bounce, about 300ms. Colour and shadow changes ease through a global transition. `prefers-reduced-motion` is respected.
+
+## Offline, backup and undo
+
+`app/manifest.ts` and `public/sw.js` make the site installable. The service worker caches the shell (network first) and static media (cache first); `/api` and videos always go to the network, and the player falls back to posters offline. Backups are the whole localStorage blob as JSON; restore runs it through the same `sanitize()` as a normal load and is undoable via `actions.withUndo`.
+

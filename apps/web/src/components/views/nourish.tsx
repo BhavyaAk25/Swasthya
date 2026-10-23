@@ -1,23 +1,42 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Camera, Download, Plus, Utensils, X } from "lucide-react";
+import { Camera, Download, Plus, RotateCcw, Utensils, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { useApp } from "@/components/app";
-import { Bar, Button, calm, Card, Chip, ImageSlot } from "@/components/ui";
+import { Bar, Button, calm, Card, Chip } from "@/components/ui";
 import { PlateScene } from "@/components/three";
 import { estimateFromItems, foodById, parseFoodText, QUICK_FOODS } from "@/lib/foods";
-import { IMAGES } from "@/lib/images";
 import { Illustration } from "@/components/visuals";
-import { actions, todayOf, totalsFor } from "@/lib/store";
-import { cn, formatClock, lastNDays, weekdayShort } from "@/lib/utils";
+import { actions, recentMeals, todayOf, totalsFor } from "@/lib/store";
+import type { Meal } from "@/lib/types";
+import { cn, formatClock, haptic, lastNDays, weekdayShort } from "@/lib/utils";
+
+const PORTIONS = [0.5, 1, 1.5, 2];
+const portionLabel = (p: number) => `${p === 0.5 ? "½" : p === 1.5 ? "1½" : p}×`;
+
+const MEAL_TIMES = [
+  { id: "breakfast", label: "Breakfast" },
+  { id: "lunch", label: "Lunch" },
+  { id: "snack", label: "Snacks" },
+  { id: "dinner", label: "Dinner" },
+] as const;
+
+function mealTime(m: Meal) {
+  const h = new Date(m.at).getHours();
+  return h < 5 ? "dinner" : h < 11 ? "breakfast" : h < 15 ? "lunch" : h < 18 ? "snack" : "dinner";
+}
 
 export function NourishView() {
   const { data, open, toast, covered } = useApp();
   const profile = data.profile!;
   const t = todayOf(data);
   const [text, setText] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const recent = recentMeals(data, 6);
+  // Today's meals in eating order, grouped by time of day.
+  const groups = MEAL_TIMES.map((g) => ({ ...g, meals: [...t.meals].reverse().filter((m) => mealTime(m) === g.id) })).filter((g) => g.meals.length);
   const preview = useMemo(() => {
     const items = parseFoodText(text);
     return items.length ? estimateFromItems(items) : null;
@@ -28,16 +47,20 @@ export function NourishView() {
 
   function addText() {
     if (!preview) return;
-    actions.addMeal({ ...preview, source: "text" });
-    toast(`Logged ${preview.name}`);
+    toast(`Logged ${preview.name}`, actions.withUndo(() => actions.addMeal({ ...preview, source: "text" })));
     setText("");
+  }
+
+  function relog(m: Meal) {
+    const { name, items, calories, protein, confidence } = m;
+    toast(`Logged ${name}`, actions.withUndo(() => actions.addMeal({ name, items, calories, protein, confidence, source: "quick" })));
   }
 
   function quickAdd(id: string) {
     const food = foodById(id);
     if (!food) return;
-    actions.addMeal({ ...estimateFromItems([{ food, qty: 1 }]), source: "quick" });
-    toast(`Added ${food.name.toLowerCase()}`);
+    haptic();
+    toast(`Added ${food.name.toLowerCase()}`, actions.withUndo(() => actions.addMeal({ ...estimateFromItems([{ food, qty: 1 }]), source: "quick" })));
   }
 
   return (
@@ -52,11 +75,11 @@ export function NourishView() {
         </Button>
       </header>
 
-      <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-[1.25fr_1fr] lg:gap-6">
-        <section className="relative overflow-hidden rounded-[32px] border border-line bg-[radial-gradient(110%_100%_at_30%_10%,#fbf9f5_0%,#f3ece3_60%,#ebe1d4_100%)]">
-          <div className="grid items-center [&>*]:min-w-0 sm:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-            <PlateScene fill={t.calories / profile.calorieTarget} active={!covered} className="h-[250px] sm:h-[300px]" />
-            <div className="space-y-5 px-6 pb-7 sm:py-8 sm:pl-0 sm:pr-8">
+      {/* The bowl is the hero: it fills as the day's food adds up. */}
+      <section className="relative overflow-hidden rounded-[32px] border border-line bg-[radial-gradient(110%_100%_at_30%_10%,#fbf9f5_0%,#f3ece3_60%,#ebe1d4_100%)]">
+          <div className="grid items-center [&>*]:min-w-0 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+            <PlateScene fill={t.calories / profile.calorieTarget} active={!covered} className="h-[280px] sm:h-[360px] lg:h-[400px]" />
+            <div className="space-y-5 px-6 pb-7 sm:py-8 sm:pl-0 sm:pr-10 lg:pr-14">
               <div>
                 <div className="flex items-baseline gap-1.5">
                   <span className="font-display text-5xl tabular-nums">{t.calories}</span>
@@ -68,10 +91,7 @@ export function NourishView() {
               <Metric label="Protein" value={t.protein} target={profile.proteinTarget} unit="g" color="var(--clay)" />
             </div>
           </div>
-        </section>
-
-        <ImageSlot src={IMAGES.nourish} tone="clay" alt="A colourful bowl of food" className="hidden min-h-[240px] lg:block" />
-      </div>
+      </section>
 
       {/* Quick log */}
       <Card>
@@ -110,7 +130,19 @@ export function NourishView() {
             </motion.div>
           ) : null}
         </AnimatePresence>
-        <div className="no-scrollbar -mx-5 mt-5 flex gap-2 overflow-x-auto px-5 sm:-mx-6 sm:px-6">
+        {recent.length ? (
+          <div className="no-scrollbar -mx-5 mt-5 flex items-center gap-2 overflow-x-auto px-5 sm:-mx-6 sm:px-6">
+            <span className="flex shrink-0 items-center gap-1.5 pr-1 text-xs font-medium text-ink-faint">
+              <RotateCcw className="h-3.5 w-3.5" /> Again
+            </span>
+            {recent.map((m) => (
+              <Chip key={m.id} onClick={() => relog(m)} className="shrink-0">
+                {m.name} <span className="text-ink-faint">· {m.calories}</span>
+              </Chip>
+            ))}
+          </div>
+        ) : null}
+        <div className="no-scrollbar -mx-5 mt-3 flex gap-2 overflow-x-auto px-5 sm:-mx-6 sm:px-6">
           {QUICK_FOODS.map((id) => {
             const f = foodById(id)!;
             return (
@@ -135,48 +167,89 @@ export function NourishView() {
                 <p className="mt-3 text-sm text-ink-soft">Your meals will appear here.</p>
               </div>
             ) : (
-              <ul className="-mx-2">
-                <AnimatePresence initial={false}>
-                  {t.meals.map((m) => (
-                    <motion.li
-                      key={m.id}
-                      layout
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={calm}
-                      className="overflow-hidden"
-                    >
-                      <div className="group flex items-center gap-4 rounded-2xl px-2 py-2.5 hover:bg-surface-2/60">
-                        {m.photo ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={m.photo} alt="" className="h-12 w-12 shrink-0 rounded-2xl object-cover" />
-                        ) : (
-                          <Illustration kind="meal" className="h-12 w-12 shrink-0 rounded-2xl bg-clay-soft/50 p-1" />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate font-medium">{m.name}</div>
-                          <div className="truncate text-xs text-ink-faint">
-                            {formatClock(m.at)} · {m.items.join(", ")}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm tabular-nums">{m.calories}</div>
-                          <div className="text-xs tabular-nums text-ink-faint">{m.protein}g</div>
-                        </div>
-                        <button
-                          type="button"
-                          aria-label={`Remove ${m.name}`}
-                          onClick={() => actions.removeMeal(m.id)}
-                          className="grid h-8 w-8 place-items-center rounded-full text-ink-faint opacity-100 hover:bg-surface hover:text-ink sm:opacity-0 sm:group-hover:opacity-100"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </motion.li>
-                  ))}
-                </AnimatePresence>
-              </ul>
+              <div className="-mx-2 space-y-4">
+                {groups.map((g) => (
+                  <div key={g.id}>
+                    <div className="flex items-baseline justify-between px-2 pb-1">
+                      <span className="eyebrow">{g.label}</span>
+                      <span className="text-xs tabular-nums text-ink-faint">{g.meals.reduce((sum, m) => sum + m.calories, 0)} kcal</span>
+                    </div>
+                    <ul>
+                      <AnimatePresence initial={false}>
+                        {g.meals.map((m) => (
+                          <motion.li
+                            key={m.id}
+                            layout
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={calm}
+                            className="overflow-hidden"
+                          >
+                            <div className="group flex items-center gap-4 rounded-2xl px-2 py-2.5 hover:bg-surface-2/60">
+                              <button
+                                type="button"
+                                onClick={() => setEditing(editing === m.id ? null : m.id)}
+                                aria-expanded={editing === m.id}
+                                aria-label={`${m.name}, change portion`}
+                                className="flex min-w-0 flex-1 items-center gap-4 text-left"
+                              >
+                                {m.photo ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={m.photo} alt="" className="h-12 w-12 shrink-0 rounded-2xl object-cover" />
+                                ) : (
+                                  <Illustration kind="meal" className="h-12 w-12 shrink-0 rounded-2xl bg-clay-soft/50 p-1" />
+                                )}
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate font-medium">
+                                    {m.name}
+                                    {m.portion && m.portion !== 1 ? <span className="text-ink-faint"> · {portionLabel(m.portion)}</span> : null}
+                                  </span>
+                                  <span className="block truncate text-xs text-ink-faint">
+                                    {formatClock(m.at)} · {m.items.join(", ")}
+                                  </span>
+                                </span>
+                                <span className="text-right">
+                                  <span className="block text-sm tabular-nums">{m.calories}</span>
+                                  <span className="block text-xs tabular-nums text-ink-faint">{m.protein}g</span>
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`Remove ${m.name}`}
+                                onClick={() => toast(`Removed ${m.name}`, actions.withUndo(() => actions.removeMeal(m.id)))}
+                                className="grid h-8 w-8 place-items-center rounded-full text-ink-faint opacity-100 hover:bg-surface hover:text-ink sm:opacity-0 sm:group-hover:opacity-100"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <AnimatePresence initial={false}>
+                              {editing === m.id ? (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={calm}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="flex items-center gap-2 px-2 pb-3 pl-[72px]">
+                                    <span className="text-xs text-ink-faint">Portion</span>
+                                    {PORTIONS.map((p) => (
+                                      <Chip key={p} active={(m.portion ?? 1) === p} onClick={() => actions.setPortion(m.id, p)}>
+                                        {portionLabel(p)}
+                                      </Chip>
+                                    ))}
+                                  </div>
+                                </motion.div>
+                              ) : null}
+                            </AnimatePresence>
+                          </motion.li>
+                        ))}
+                      </AnimatePresence>
+                    </ul>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </Card>

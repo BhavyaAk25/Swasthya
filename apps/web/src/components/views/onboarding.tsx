@@ -57,9 +57,16 @@ export function Onboarding() {
   const [goal, setGoal] = useState<Goal>("consistency");
   const [split, setSplit] = useState<Split>("three-day");
   const [time, setTime] = useState("21:30");
+  const [weight, setWeight] = useState("");
+  const [unit, setUnit] = useState<"kg" | "lb">("kg");
 
-  const STEP_COUNT = 4;
-  const valid = [name.trim().length > 0, true, true, /^\d{2}:\d{2}$/.test(time)][step];
+  const weightNum = Number(weight);
+  const weightKg = weight && Number.isFinite(weightNum) ? (unit === "kg" ? weightNum : weightNum * 0.4536) : undefined;
+  const weightOk = !weight || (weightKg !== undefined && weightKg >= 30 && weightKg <= 250);
+  const targets = targetsFor(goal, weightOk ? weightKg : undefined);
+
+  const STEP_COUNT = 5;
+  const valid = [name.trim().length > 0, true, weightOk, true, /^\d{2}:\d{2}$/.test(time)][step];
   const last = step === STEP_COUNT - 1;
 
   function next() {
@@ -70,7 +77,7 @@ export function Onboarding() {
         goal,
         split,
         recoveryTime: time,
-        ...targetsFor(goal),
+        ...targets,
         createdAt: new Date().toISOString(),
       });
       return;
@@ -112,6 +119,52 @@ export function Onboarding() {
           {GOALS.map((g) => (
             <Option key={g.id} active={goal === g.id} label={g.label} hint={g.hint} onClick={() => setGoal(g.id)} />
           ))}
+        </div>
+      ),
+    },
+    {
+      title: "Your daily fuel.",
+      body: (
+        <div className="space-y-6">
+          <p className="max-w-sm text-ink-soft">Optional. Your weight helps set calorie and protein targets for your goal.</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              inputMode="decimal"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value.slice(0, 5))}
+              onKeyDown={(e) => e.key === "Enter" && next()}
+              placeholder="Weight"
+              aria-label={`Weight in ${unit}`}
+              className={cn(
+                "h-14 min-w-0 flex-1 rounded-[20px] border bg-surface px-5 text-lg outline-none placeholder:text-ink-faint focus:border-sage",
+                weightOk ? "border-line" : "border-clay",
+              )}
+            />
+            {(["kg", "lb"] as const).map((u) => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => setUnit(u)}
+                className={cn("h-14 w-14 rounded-[18px] border text-[15px] font-medium", unit === u ? "border-transparent bg-moss text-white" : "border-line bg-surface text-ink-soft")}
+              >
+                {u}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-[20px] bg-surface-2 px-5 py-4">
+              <div className="eyebrow">Calories</div>
+              <div className="mt-1 font-display text-3xl tabular-nums">{targets.calorieTarget.toLocaleString()}</div>
+              <div className="text-xs text-ink-faint">kcal a day</div>
+            </div>
+            <div className="rounded-[20px] bg-surface-2 px-5 py-4">
+              <div className="eyebrow">Protein</div>
+              <div className="mt-1 font-display text-3xl tabular-nums">{targets.proteinTarget}</div>
+              <div className="text-xs text-ink-faint">g a day</div>
+            </div>
+          </div>
+          <p className="text-xs text-ink-faint">{weight ? "Estimates, not medical advice." : "Typical starting points."} You can change them anytime in Settings.</p>
         </div>
       ),
     },

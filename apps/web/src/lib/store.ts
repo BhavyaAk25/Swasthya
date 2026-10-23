@@ -30,32 +30,38 @@ const list = <T,>(v: unknown, ok: (x: unknown) => boolean): T[] => (Array.isArra
 function load(): AppData {
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (!raw) return empty();
-    const p = JSON.parse(raw) as Record<string, unknown>;
-    if (!isObj(p) || p.version !== 2) return empty();
-    const pr = isObj(p.profile) ? p.profile : null;
-    const valid =
-      pr && typeof pr.name === "string" && SPLITS.some((x) => x.id === pr.split) && GOALS.some((x) => x.id === pr.goal) && typeof pr.recoveryTime === "string";
-    const profile = valid ? (pr as unknown as Profile) : null;
-    const workouts: AppData["workouts"] = {};
-    if (isObj(p.workouts)) {
-      for (const [k, v] of Object.entries(p.workouts)) {
-        if (isObj(v)) workouts[k] = { ...(v as unknown as WorkoutDay), completed: Array.isArray(v.completed) ? (v.completed as string[]) : [] };
-      }
-    }
-    return {
-      version: 2,
-      profile,
-      meals: list<Meal>(p.meals, (m) => isObj(m) && typeof m.date === "string" && typeof m.calories === "number"),
-      workouts,
-      recovery: list(p.recovery, (r) => isObj(r) && typeof r.date === "string" && typeof r.minutes === "number"),
-      messages: list(p.messages, (m) => isObj(m) && typeof m.text === "string"),
-      checkins: isObj(p.checkins) ? (p.checkins as AppData["checkins"]) : {},
-      snoozedUntil: typeof p.snoozedUntil === "string" ? p.snoozedUntil : undefined,
-    };
+    return (raw && sanitize(JSON.parse(raw))) || empty();
   } catch {
     return empty();
   }
+}
+
+/** Validate stored or imported data field by field. Returns null when it isn't Swasthya data. */
+function sanitize(p: unknown): AppData | null {
+  if (!isObj(p) || p.version !== 2) return null;
+  const pr = isObj(p.profile) ? p.profile : null;
+  const valid =
+    pr && typeof pr.name === "string" && SPLITS.some((x) => x.id === pr.split) && GOALS.some((x) => x.id === pr.goal) && typeof pr.recoveryTime === "string";
+  const profile = valid ? (pr as unknown as Profile) : null;
+  const workouts: AppData["workouts"] = {};
+  if (isObj(p.workouts)) {
+    for (const [k, v] of Object.entries(p.workouts)) {
+      if (isObj(v)) workouts[k] = { ...(v as unknown as WorkoutDay), completed: Array.isArray(v.completed) ? (v.completed as string[]) : [] };
+    }
+  }
+  return {
+    version: 2,
+    profile,
+    meals: list<Meal>(p.meals, (m) => isObj(m) && typeof m.date === "string" && typeof m.calories === "number").map((m) =>
+      // Only small inline images are allowed as meal photos.
+      m.photo && !(typeof m.photo === "string" && m.photo.startsWith("data:image/")) ? { ...m, photo: undefined } : m,
+    ),
+    workouts,
+    recovery: list(p.recovery, (r) => isObj(r) && typeof r.date === "string" && typeof r.minutes === "number"),
+    messages: list(p.messages, (m) => isObj(m) && typeof m.text === "string"),
+    checkins: isObj(p.checkins) ? (p.checkins as AppData["checkins"]) : {},
+    snoozedUntil: typeof p.snoozedUntil === "string" ? p.snoozedUntil : undefined,
+  };
 }
 
 function persist(next: AppData) {
@@ -152,6 +158,20 @@ export function streak(d: AppData) {
 }
 
 /** Everything the AI coach may know about today and the last few days (no free text). */
+/** Distinct meals eaten recently (most recent first), for one-tap relogging. */
+export function recentMeals(d: AppData, limit = 6): Meal[] {
+  const seen = new Set<string>();
+  const out: Meal[] = [];
+  for (const m of [...d.meals].sort((a, b) => b.at.localeCompare(a.at))) {
+    const key = m.name.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(m);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 export function coachContext(d: AppData): CoachContext | null {
   const p = d.profile;
   if (!p) return null;
@@ -198,6 +218,13 @@ function updateDay(d: AppData, fn: (day: WorkoutDay) => WorkoutDay): AppData {
 }
 
 export const actions = {
+  /** Run a change and return a function that puts everything back exactly as it was (for Undo). */
+  withUndo(change: () => void) {
+    const before = data ?? load();
+    change();
+    return () => set(() => before);
+  },
+
   saveProfile(profile: Profile) {
     set((d) => ({
       ...d,
@@ -210,6 +237,19 @@ export const actions = {
     set((d) => ({
       ...d,
       meals: [{ ...meal, id: uid("meal"), at: new Date().toISOString(), date: dateKey() }, ...d.meals],
+    }));
+  },
+
+  /** Rescale a logged meal to a new portion (½, 1, 1½, 2 ×) from its original estimate. */
+  setPortion(id: string, portion: number) {
+    const p = Math.min(3, Math.max(0.25, portion));
+    set((d) => ({
+      ...d,
+      meals: d.meals.map((m) => {
+        if (m.id !== id) return m;
+        const was = m.portion ?? 1;
+        return { ...m, portion: p, calories: Math.round((m.calories / was) * p), protein: Math.round((m.protein / was) * p) };
+      }),
     }));
   },
 
@@ -310,6 +350,32 @@ export const actions = {
     a.download = `swasthya-meals-${dateKey()}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
+  /** Download everything as one JSON file (data lives only in this browser). */
+  exportBackup() {
+    const d = data;
+    if (!d) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(d)], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `swasthya-backup-${dateKey()}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
+  /** Replace all data with a backup file's contents. Returns an undo function, or null if invalid. */
+  importBackup(text: string) {
+    if (text.length > 8_000_000) return null;
+    let parsed: AppData | null = null;
+    try {
+      parsed = sanitize(JSON.parse(text));
+    } catch {
+      return null;
+    }
+    if (!parsed?.profile) return null;
+    const next = parsed;
+    return actions.withUndo(() => set(() => next));
   },
 
   reset() {

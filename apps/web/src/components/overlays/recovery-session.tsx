@@ -145,7 +145,7 @@ function Guided({ minutes, played, onFinish }: { minutes: number; played: React.
 
   return (
     <div className="flex flex-col items-center pb-2 pt-1 text-center">
-      <div className="relative w-full overflow-hidden rounded-[24px] border border-line bg-[radial-gradient(120%_110%_at_60%_20%,#f8f5f1_0%,#ece7ee_60%,#e0d9e3_100%)]">
+      <div className="relative w-full overflow-hidden rounded-[24px] border border-line bg-stage-dusk">
         <RestoreScene cycle={elapsed % 10} playing={playing} className="h-[300px] w-full sm:h-[340px]" />
       </div>
       <div className="mt-4 w-full">

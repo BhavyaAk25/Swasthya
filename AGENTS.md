@@ -17,13 +17,17 @@ Swasthya is a calm, minimalist wellness website for meals (Nourish), training (M
 - Local artwork and seamless motion clips live in `apps/web/public/images/characters/`. Keep the approved faces, hair, clothes and proportions consistent across every asset.
 - `components/characters/assets.ts` maps all exercises to their own poster/loop. Pike has its own clip; never substitute a push-up or standing figure for a different exercise.
 - `CharacterPlayer` is the shared fixed-frame player: `object-contain`, no animated zoom or crop, pause offscreen/covered/hidden, keep playback position, respect reduced motion, show the correct poster when media fails.
-- Hero empty backgrounds are pure white (255). `CharacterPlayer`’s `blendPlate` paints them into a canvas as backdrop × artwork, so they match the stage colour exactly. Never reintroduce CSS `mix-blend-mode` for media. Any off-white patch touching the plate shows as a blob: check with a contrast boost and fix with `scripts/media/clean_plate.py`.
+- Every character asset (hero, exercises, rest) has a pure white (255) background. `CharacterPlayer`’s `blendPlate` paints it into a canvas as backdrop × artwork, so it matches the colour behind it exactly and repaints when evening tones switch (`data-mode` on `<html>`). Scenes therefore sit on **flat** stages (`bg-bg`, `bg-stage-sage`, `bg-stage-dusk`), never gradients. Never reintroduce CSS `mix-blend-mode` for media. New clips: whiten with `scripts/media/normalize_plate.py` (soft plates) or `clean_plate.py` (patches); check with a contrast boost.
 - Exercise loops must move at an even pace (no freeze-then-jump); `scripts/media/retime.py` evens them without changing loop length. Bump the `?v=` key after replacing media.
 - Hero friends are independently tappable: five decorative squat repetitions, then happy. Only the hint-seen preference is stored; taps never log workouts.
 - Restore is a ten-second breathing loop (four in, six out), synchronized to the guided session. A separate visible inhale/exhale bloom sits below the people; no orb/tide badge over their bodies.
 - The existing `components/three/index.tsx` exports remain compatibility entry points for Opus's layouts. Only the meal bowl in `three/plate.tsx` loads WebGL; its geometry remains `public/models/props.glb`. Never hand-edit GLB files.
 - Asset masters, exact prompts, calibration and superseded files live in ignored `output/characters/` and `output/visual-review/`; only selected production files ship.
 - Check asset coverage with `node scripts/check-character-assets.mjs`.
+
+## Form, voice and evening
+- Form guidance (three cues and one thing to avoid) for every move lives in `lib/form.ts`; the first cue is spoken on a move's first set, so recording must be rerun after editing it.
+- Evening tones: `:root[data-mode="evening"]` in `globals.css` overrides the palette from an hour before the reset time until 5 am (`dayPart` in `lib/utils.ts`); users can turn it off in Settings.
 
 ## Voice
 - Spoken cues are pre-recorded Kokoro-82M clips (`bf_emma`) in `public/audio/voice/`, listed in `lib/voice-manifest.json`. Build cue text only through `lib/voice-phrases.ts` so app and recorder agree.
@@ -46,6 +50,10 @@ npm run typecheck
 npm run build
 ```
 Run typecheck and build one after the other (the build regenerates `.next/types`).
+
+## Offline and data
+- `app/manifest.ts` + `public/sw.js` make the site installable and usable offline (shell network-first, static media cache-first, never `/api` or videos). Bump `VERSION` in `sw.js` when its caching rules change.
+- Undo uses `actions.withUndo(fn)` (snapshot before, restore on Undo); Back up / Restore in Settings round-trip the whole store through the same `sanitize()` used on load.
 
 ## Releasing
 The live site is **https://swasthya-bhavya.vercel.app** (Vercel project `swasthya`, team "Bhavya's projects", root directory `apps/web`). It is linked to GitHub: **every push to `main` deploys to production automatically**; other branches get private preview URLs.

@@ -10,7 +10,7 @@ export type Friend = "man" | "woman";
 export const HERO_ENTRY_SECONDS = 0.6;
 
 type Asset = { poster: string; video?: string; seconds: number };
-const clipFile = (clip: CharacterClip, ext: "webp" | "mp4") => `${ROOT}/${clip}.${ext}?v=glide8`;
+const clipFile = (clip: CharacterClip, ext: "webp" | "mp4") => `${ROOT}/${clip}.${ext}?v=flat9`;
 const still = (clip: CharacterClip, seconds: number): Asset => ({ poster: clipFile(clip, "webp"), seconds });
 const motion = (clip: CharacterClip, seconds: number): Asset => ({ ...still(clip, seconds), video: clipFile(clip, "mp4") });
 

@@ -8,14 +8,16 @@ A calm wellness studio for the web. Eat well, move daily, rest deeply, all guide
 
 | | |
 |---|---|
-| **Today** | Two illustrated friends you can tap independently (five squats, then a warm smile), today's practice, meal and rest cards, a daily check-in (water, sleep, mood) with gentle suggestions |
-| **Nourish** | A 3D bowl that fills as you eat. Snap or upload a meal photo, type "2 eggs and toast", or tap quick-add chips. Daily totals, 7-day chart, CSV export |
-| **Move** | An illustrated movement demo for every exercise, a guided player (set timer, rests, spoken cues, finish summary), adapt to how you feel, and a camera squat counter |
-| **Restore** | Yoga nidra (5, 10 or 15 min) with both friends resting and a visible four-in/six-out breathing guide synchronized with the session clock. A gentle prompt appears at your wind-down time |
-| **Progress** | Streak, monthly calendar, calories, protein, sleep and mood, weekly training, and a weekly review |
-| **Coach** | Chat that logs meals, adapts training and opens the right tool from plain language |
+| **Today** | Two illustrated friends you can tap (five squats, then a warm smile), today's practice by day and a wind-down hero in the evening, a daily AI coach note, meal and rest cards, a daily check-in (water, sleep, mood), streak milestones |
+| **Nourish** | A 3D bowl that fills as you eat. Snap a photo, type "2 eggs and toast", tap quick-add or "Again" chips for recent meals. Meals grouped by time of day, editable portions, Undo, 7-day chart, CSV export |
+| **Move** | An illustrated demo and form cues for every exercise, a guided player (set timer, rests, spoken cues in a recorded voice, finish summary), adapt to how you feel, and a camera squat counter |
+| **Restore** | Yoga nidra (5, 10 or 15 min) with both friends resting and a four-in/six-out breathing guide synchronized with the session, plus an optional wind-down reminder |
+| **Progress** | Streak, monthly calendar, calories, protein, sleep and mood, weekly training, a weekly review and insights that appear once there is enough data |
+| **Coach** | Chat that logs meals, adapts training and suggests the right tool from plain language |
 
-Everything works **offline and for free**. Data stays in your browser (localStorage).
+Personal calorie and protein targets come from an optional body weight at onboarding. Evening tones warm the palette after wind-down time.
+
+Everything works **offline and for free**: the site installs to the home screen and opens without a connection. Data stays in your browser (localStorage); Settings has Back up / Restore to move it between devices.
 
 ### Optional: free AI keys
 

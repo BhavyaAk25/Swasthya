@@ -92,3 +92,9 @@ Final canonical URL now loads the current client build and smooth6 assets withou
 - Hero plate compositing moved from CSS `mix-blend-mode` to a canvas multiply (see `docs/ARCHITECTURE.md`); the squat demo now uses the plain path like the other exercise clips.
 - Pushup, pike, deadbug, catcow, row, twist, fold and lunge were retimed with `scripts/media/retime.py` to remove freeze-then-jump motion; cache key `glide8`. The workout player keeps the upcoming move paused during rest (no idle still swap), and moves cross-fade.
 - AI: Groq first (models discovered from the key's model list), Gemini fallback. Coach suggestions show as a button instead of auto-opening a tool.
+
+## October 23 polish (Claude)
+
+- All exercise/rest clips whitened with `scripts/media/normalize_plate.py` (cache key `flat9`; originals in the Trash) and rendered through the canvas plate on flat `stage-sage` / `stage-dusk` panels.
+- Time-aware Today hero, evening tones, form cues (`lib/form.ts`, 14 new voice clips), weight-based targets, Undo, recent meals, portions, PWA, backup/restore, gated Progress insights, milestones, subset fonts. Details in `CHANGELOG.md`.
+

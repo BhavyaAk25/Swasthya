@@ -9,9 +9,10 @@ import { ExerciseDemoScene } from "@/components/three";
 import { Bar, Button, calm, IconButton, Ring, Sheet } from "@/components/ui";
 import { actions, todayOf } from "@/lib/store";
 import type { Session } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, haptic } from "@/lib/utils";
 import { buildSteps, clock, completedExercises, restBefore, type Step } from "@/lib/workout";
 import { cancelVoice, prefetchVoice, say, voiceSupported } from "@/lib/voice";
+import { FORM } from "@/lib/form";
 import { FIXED, restCue, workCue } from "@/lib/voice-phrases";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -205,7 +206,7 @@ function Player({
   useEffect(() => {
     if (!canSpeak || !voice || !present || paused || phase === "ready" || spokenCue.current === cueKey) return;
     spokenCue.current = cueKey;
-    if (phase === "work") void say(workCue(step));
+    if (phase === "work") void say(workCue(step, FORM[step.exerciseId]?.cues[0]));
     else if (phase === "rest") void say(restCue(step));
     else if (phase === "done" && state.done.length > 0) void say([FIXED.complete]);
   }, [canSpeak, voice, present, paused, phase, cueKey, step, state.done.length]);
@@ -229,7 +230,7 @@ function Player({
 
   // Warm this session's recorded cues.
   useEffect(() => {
-    prefetchVoice([...steps.flatMap((s) => [...workCue(s), ...restCue(s)]), FIXED.complete, ...FIXED.count]);
+    prefetchVoice([...steps.flatMap((s) => [...workCue(s, FORM[s.exerciseId]?.cues[0]), ...restCue(s)]), FIXED.complete, ...FIXED.count]);
   }, [steps]);
 
   // Keyboard: Space pauses, Enter advances. Never while typing.
@@ -283,7 +284,7 @@ function Player({
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         className="overflow-hidden"
       >
-        <div className="mb-5 overflow-hidden rounded-[24px] border border-line bg-[radial-gradient(110%_100%_at_50%_10%,#fbfaf6_0%,#eef1ec_55%,#e2e8e4_100%)]">
+        <div className="mb-5 overflow-hidden rounded-[24px] border border-line bg-stage-sage">
           <ExerciseDemoScene
             exerciseId={(phase === "ready" ? steps[0] : step).exerciseId}
             playing={phase === "ready" || (phase === "work" && !paused)}
@@ -335,6 +336,12 @@ function Player({
                         </motion.h3>
                       </AnimatePresence>
                     </div>
+                    {/* A different form cue each set, so it stays fresh without extra reading. */}
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.p key={`cue-${index}`} {...soft} className="mt-1 min-h-5 text-[14px] leading-snug text-moss">
+                        {FORM[step.exerciseId]?.cues[(step.set - 1) % 3] ?? ""}
+                      </motion.p>
+                    </AnimatePresence>
                     <div className="mt-1 hidden h-5 truncate text-[13px] text-ink-faint sm:block">
                       {nextMove ? `Next: ${nextMove.name}` : "Final move"}
                     </div>
@@ -355,7 +362,7 @@ function Player({
 
               <div className="mt-5 flex items-center gap-3">
                 {voiceToggle}
-                <Button size="lg" variant="soft" icon={Check} className="min-w-0 flex-1 px-4!" onClick={() => dispatch({ type: "complete" })}>
+                <Button size="lg" variant="soft" icon={Check} className="min-w-0 flex-1 px-4!" onClick={() => { haptic(); dispatch({ type: "complete" }); }}>
                   {step.kind === "time" ? "Done" : "Done set"}
                 </Button>
                 <PauseButton paused={paused} onClick={() => dispatch({ type: "toggle" })} />

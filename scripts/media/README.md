@@ -7,6 +7,10 @@ Offline helpers for the character clips in `apps/web/public/images/characters/`.
 - `clean_plate.py image|video SRC DST [FFMPEG]`: whitens off-white patches that touch a white plate
   (used on the woman hero assets, which had a linen block behind her neck). Only for white-plate
   hero media; never run it on the man (his ivory tee would qualify).
+- `normalize_plate.py FFMPEG SRC.mp4 SRC.webp OUT.mp4 OUT.webp`: turns a clip's soft, mottled beige
+  plate into pure white by fitting a smooth background surface (rejecting the people, mats and the
+  man's ivory tee) and dividing every frame and the poster by it. Used on all exercise and rest clips
+  so they render through the canvas plate like the hero.
 - `retime.py FFMPEG SRC DST SIGMA`: evens out motion speed in a looping clip without changing its
   length (short freezes and jumps become a glide; long holds stay). Sigma 5 was used for pushup,
   pike, deadbug, catcow, row, twist, fold and lunge.

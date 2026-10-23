@@ -80,8 +80,7 @@ function Flow({ onClose }: { onClose: () => void }) {
     if (saving.current) return; // a double tap logs once
     saving.current = true;
     const thumb = photo ? await shrinkImage(photo, 320, 0.7).catch(() => undefined) : undefined;
-    actions.addMeal({ ...meal, source: photo ? "photo" : source, photo: thumb });
-    toast(`Logged ${meal.name}`);
+    toast(`Logged ${meal.name}`, actions.withUndo(() => actions.addMeal({ ...meal, source: photo ? "photo" : source, photo: thumb })));
     onClose();
   }
 

@@ -8,6 +8,7 @@ import { useApp } from "@/components/app";
 import { ExerciseDemoScene } from "@/components/three";
 import { Bar, Button, calm, Card, Chip } from "@/components/ui";
 import { CONSTRAINTS, weekFor } from "@/lib/plan";
+import { FORM } from "@/lib/form";
 import { actions, todayOf } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +58,7 @@ export function MoveView() {
       </header>
 
       {/* Illustrated demonstration of the selected move */}
-      <section className="relative overflow-hidden rounded-[32px] border border-line bg-[radial-gradient(110%_100%_at_50%_10%,#fbfaf6_0%,#eef1ec_55%,#e2e8e4_100%)]">
+      <section className="relative overflow-hidden rounded-[32px] border border-line bg-stage-sage">
         <ExerciseDemoScene exerciseId={selected.id} active={!covered} className="h-[300px] w-full sm:h-[380px] lg:h-[440px]" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 sm:p-6">
           <AnimatePresence mode="wait" initial={false}>
@@ -75,6 +76,32 @@ export function MoveView() {
           </AnimatePresence>
         </div>
       </section>
+
+      {/* How to do the selected move */}
+      {FORM[selected.id] ? (
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.section
+            key={selected.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            aria-label={`How to do ${selected.name}`}
+            className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.1fr)] sm:overflow-visible sm:px-0 [&>*]:min-w-0"
+          >
+            {FORM[selected.id].cues.map((cue, i) => (
+              <div key={cue} className="flex w-[72%] shrink-0 snap-start gap-3 rounded-[20px] bg-surface px-4 py-3.5 sm:w-auto">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-moss-soft text-xs font-semibold text-moss">{i + 1}</span>
+                <span className="text-sm leading-snug text-ink">{cue}</span>
+              </div>
+            ))}
+            <div className="flex w-[72%] shrink-0 snap-start gap-3 rounded-[20px] bg-clay-soft/60 px-4 py-3.5 sm:w-auto">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6440]">Avoid</span>
+              <span className="text-sm leading-snug text-ink-soft">{FORM[selected.id].avoid}</span>
+            </div>
+          </motion.section>
+        </AnimatePresence>
+      ) : null}
 
       <div className="grid gap-4 [&>*]:min-w-0 lg:grid-cols-[1.35fr_1fr] lg:gap-6">
         <div className="space-y-4 lg:space-y-6">
@@ -157,15 +184,12 @@ export function MoveView() {
                     </Button>
                   </motion.div>
                 ) : (
-                  <motion.div key="todo" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={calm} className="flex gap-3">
-                    <Button className="flex-1" icon={Play} onClick={() => open("workout")}>
-                      Guided session
-                    </Button>
+                  <motion.div key="todo" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={calm} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-ink-faint">Trained without the player?</span>
                     <Button
                       variant="outline"
                       onClick={() => {
-                        actions.setWorkoutStatus("done");
-                        toast("Session logged");
+                        toast("Session logged", actions.withUndo(() => actions.setWorkoutStatus("done")));
                       }}
                     >
                       Mark done

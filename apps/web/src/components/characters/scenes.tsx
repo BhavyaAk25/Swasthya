@@ -94,7 +94,7 @@ export function ExerciseDemoScene({ exerciseId, playing = true, active = true, c
     <div className={cn("relative", className)}>
       <AnimatePresence initial={false}>
         <motion.div key={selected} className="absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.45, ease: "easeInOut" }}>
-          <CharacterPlayer poster={asset.poster} video={asset.video} active={active} playing={playing} className="h-full w-full" label={selected === "deadbug" ? "Dead bug: arms steady, alternating leg extensions." : `Demonstration: ${selected}`} />
+          <CharacterPlayer blendPlate poster={asset.poster} video={asset.video} active={active} playing={playing} className="h-full w-full" label={selected === "deadbug" ? "Dead bug: arms steady, alternating leg extensions." : `Demonstration: ${selected}`} />
         </motion.div>
       </AnimatePresence>
     </div>
@@ -105,7 +105,7 @@ export function RestoreScene({ cycle, playing = true, active = true, className }
   const asset = CHARACTER_ASSETS.rest;
   return (
     <div className={cn("flex min-w-0 flex-col", className)}>
-      <CharacterPlayer poster={asset.poster} video={asset.video} cycle={cycle} active={active} playing={playing} className="min-h-0 w-full flex-1" label="Two friends resting on their mats, breathing slowly." />
+      <CharacterPlayer blendPlate poster={asset.poster} video={asset.video} cycle={cycle} active={active} playing={playing} className="min-h-0 w-full flex-1" label="Two friends resting on their mats, breathing slowly." />
       <BreathingGuide cycle={cycle} playing={playing} active={active} className="shrink-0 pb-2" />
     </div>
   );

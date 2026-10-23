@@ -8,7 +8,7 @@ import { Button, Card, Chip } from "@/components/ui";
 import { RestoreScene } from "@/components/three";
 import { LENGTHS } from "@/lib/recovery";
 import { actions, todayOf } from "@/lib/store";
-import { countdown, formatClock, formatTime, lastNDays, nextAt, weekdayShort } from "@/lib/utils";
+import { countdown, formatClock, lastNDays, nextAt, weekdayShort, whenLabel } from "@/lib/utils";
 
 export function RestoreView() {
   const { data, open, ai, toast, covered } = useApp();
@@ -26,7 +26,7 @@ export function RestoreView() {
         <h1 className="mt-2 font-display text-4xl font-light sm:text-5xl">Rest is training too</h1>
       </header>
 
-      <section className="relative overflow-hidden rounded-[32px] border border-line bg-[radial-gradient(120%_110%_at_70%_20%,#f8f5f1_0%,#ece7ee_55%,#e0d9e3_100%)]">
+      <section className="relative overflow-hidden rounded-[32px] border border-line bg-stage-dusk">
         <div className="grid [&>*]:min-w-0 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           <div className="h-[340px] sm:h-[400px] lg:order-2 lg:h-[500px]">
             <RestoreScene active={!covered} className="h-full w-full" />
@@ -35,7 +35,7 @@ export function RestoreView() {
             <div>
               <div className="font-display text-4xl leading-tight sm:text-5xl">Yoga nidra</div>
               <div className="mt-2 text-sm text-ink-soft">
-                {t.recovered ? "Completed today" : `Tonight at ${formatTime(profile.recoveryTime)} · ${countdown(nextAt(profile.recoveryTime))}`}
+                {t.recovered ? "Completed today" : `${whenLabel(profile.recoveryTime)} · ${countdown(nextAt(profile.recoveryTime))}`}
               </div>
             </div>
             <div className="flex gap-2">

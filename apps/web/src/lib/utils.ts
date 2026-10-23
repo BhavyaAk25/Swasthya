@@ -62,6 +62,23 @@ export function nextAt(hhmm: string, now = new Date()) {
   return target;
 }
 
+/** "Today at 7 am", "Tonight at 9:30 pm" or "Tomorrow at 9:30 pm" for the next occurrence. */
+export function whenLabel(hhmm: string, now = new Date()) {
+  const target = nextAt(hhmm, now);
+  const time = formatTime(hhmm);
+  if (target.getDate() !== now.getDate()) return `Tomorrow at ${time}`;
+  return `${target.getHours() >= 17 ? "Tonight" : "Today"} at ${time}`;
+}
+
+/** Day, evening wind-down (from an hour before the reset time) or late night (before 5 am). */
+export function dayPart(recoveryTime: string, now = new Date()): "day" | "wind" | "night" {
+  const h = now.getHours();
+  if (h < 5) return "night";
+  const [rh, rm] = recoveryTime.split(":").map(Number);
+  const minutes = h * 60 + now.getMinutes();
+  return minutes >= rh * 60 + rm - 60 || h >= 23 ? "wind" : "day";
+}
+
 export function countdown(target: Date, now = new Date()) {
   const mins = Math.max(0, Math.round((target.getTime() - now.getTime()) / 60000));
   if (mins < 1) return "now";
@@ -69,6 +86,15 @@ export function countdown(target: Date, now = new Date()) {
   const h = Math.floor(mins / 60);
   const r = mins % 60;
   return r ? `in ${h}h ${r}m` : `in ${h}h`;
+}
+
+/** A light tap on phones that support it (check-ins, finishing a set). */
+export function haptic(ms = 8) {
+  try {
+    navigator.vibrate?.(ms);
+  } catch {
+    /* Not supported: silently skip. */
+  }
 }
 
 export function clamp(value: number, min: number, max: number) {

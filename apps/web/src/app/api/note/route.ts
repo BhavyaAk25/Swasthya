@@ -6,7 +6,28 @@ import { fail, json, offline } from "@/lib/server/gemini";
 import type { CoachNote } from "@/lib/types";
 
 /** A short, personal suggestion for the Today page, built only from structured context. */
-const body = z.object({ context: coachContextSchema, partOfDay: z.enum(["morning", "afternoon", "evening", "night"]) });
+const body = z.object({
+  context: coachContextSchema,
+  partOfDay: z.enum(["morning", "afternoon", "evening", "night"]),
+  firstDay: z.boolean().default(false),
+});
+
+/** What each part of the day may suggest. Late at night: rest only, never food or training. */
+const ALLOWED: Record<z.infer<typeof body>["partOfDay"], readonly (string | null)[]> = {
+  morning: [...ACTIONS, null],
+  afternoon: [...ACTIONS, null],
+  evening: ["open_recovery", "open_workout", "open_camera", null],
+  night: ["open_recovery", null],
+};
+
+const RULES: Record<z.infer<typeof body>["partOfDay"], string> = {
+  morning: "It is morning: a good time for today's session, a protein-rich breakfast or the check-in.",
+  afternoon: "It is afternoon: suggest the session if it is not done, or a balanced meal.",
+  evening: "It is evening: prefer winding down (open_recovery). Suggest the session only if it is untouched and short; never suggest a big meal.",
+  night: "It is late at night: encourage rest and sleep only. Never suggest eating, training or squats. Use open_recovery or null.",
+};
+
+const NIGHT_FALLBACK: CoachNote = { text: "It's late. A slow reset now will help you sleep well.", action: "open_recovery" };
 
 const note = z.object({
   text: z.string().min(1).max(200),
@@ -36,11 +57,18 @@ export async function POST(request: Request) {
   try {
     const result = await askJson(note, {
       system: SYSTEM,
-      user: `<context>\nPart of day: ${parsed.data.partOfDay}\n${contextBlock(parsed.data.context)}\n</context>`,
+      user: `<rules>\n${RULES[parsed.data.partOfDay]}${parsed.data.firstDay ? "\nThis is the user's first day with Swasthya: welcome them warmly by name and suggest one easy first step." : ""}\n</rules>\n<context>\nPart of day: ${parsed.data.partOfDay}\n${contextBlock(parsed.data.context)}\n</context>`,
       jsonSchema,
       temperature: 0.7,
       maxTokens: 160,
     });
+    // Enforce the time-of-day policy even if the model ignores it.
+    if (!ALLOWED[parsed.data.partOfDay].includes(result.action)) {
+      return json<CoachNote>(parsed.data.partOfDay === "night" ? NIGHT_FALLBACK : { ...result, action: null });
+    }
+    if (parsed.data.partOfDay === "night" && /\b(eat|snack|meal|food|workout|train|session|squat)/i.test(result.text)) {
+      return json<CoachNote>(NIGHT_FALLBACK);
+    }
     const text = result.text.trim();
     return json<CoachNote>({ ...result, text: /[.!?]$/.test(text) ? text : `${text}.` });
   } catch (error) {

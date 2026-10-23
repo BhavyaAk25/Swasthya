@@ -1,7 +1,7 @@
 "use client";
 
-import { Download, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { Download, RotateCcw, Upload } from "lucide-react";
+import { useRef, useState } from "react";
 
 import { useApp } from "@/components/app";
 import { Button, Chip, Sheet } from "@/components/ui";
@@ -27,12 +27,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+const SWITCH =
+  "h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-surface-2 transition-colors before:block before:h-4 before:w-4 before:translate-x-0.5 before:rounded-full before:bg-white before:shadow before:transition-transform checked:bg-moss checked:before:translate-x-4.5";
+
 const input = "h-12 w-full rounded-[16px] border border-line bg-bg px-4 outline-none focus:border-sage";
 
 function Form({ onClose }: { onClose: () => void }) {
   const { data, ai, toast } = useApp();
   const [p, setP] = useState<Profile>(data.profile!);
   const [confirmReset, setConfirmReset] = useState(false);
+  const fileInput = useRef<HTMLInputElement | null>(null);
   const update = <K extends keyof Profile>(key: K, value: Profile[K]) => setP((cur) => ({ ...cur, [key]: value }));
 
   return (
@@ -95,9 +99,72 @@ function Form({ onClose }: { onClose: () => void }) {
         </span>
       </div>
 
+      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-[20px] border border-line px-4 py-3">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">Evening tones</span>
+          <span className="block text-xs text-ink-faint">A warmer, softer palette from wind-down time.</span>
+        </span>
+        <input
+          type="checkbox"
+          role="switch"
+          checked={p.eveningTones !== false}
+          onChange={(e) => update("eveningTones", e.target.checked)}
+          className={SWITCH}
+        />
+      </label>
+
+      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-[20px] border border-line px-4 py-3">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">Wind-down reminder</span>
+          <span className="block text-xs text-ink-faint">A notification at {p.recoveryTime} while Swasthya is open in a tab.</span>
+        </span>
+        <input
+          type="checkbox"
+          role="switch"
+          checked={Boolean(p.reminders)}
+          onChange={async (e) => {
+            const on = e.target.checked;
+            if (on && typeof Notification !== "undefined" && Notification.permission !== "granted") {
+              const result = await Notification.requestPermission().catch(() => "denied" as const);
+              if (result !== "granted") {
+                toast("Notifications are blocked for this site");
+                return;
+              }
+            }
+            update("reminders", on);
+          }}
+          className={SWITCH}
+        />
+      </label>
+
+      <div>
+        <div className="eyebrow">Your data</div>
+        <p className="mt-1 text-xs text-ink-faint">Everything stays in this browser. Back up to move to another device.</p>
+      </div>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" icon={Download} onClick={actions.exportCsv} disabled={!data.meals.length}>
-          Export meals
+        <Button variant="outline" size="sm" icon={Download} onClick={actions.exportBackup}>
+          Back up
+        </Button>
+        <Button variant="outline" size="sm" icon={Upload} onClick={() => fileInput.current?.click()}>
+          Restore
+        </Button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            const undo = actions.importBackup(await file.text());
+            if (!undo) return toast("That file isn't a Swasthya backup");
+            onClose();
+            toast("Backup restored", undo);
+          }}
+        />
+        <Button variant="ghost" size="sm" icon={Download} onClick={actions.exportCsv} disabled={!data.meals.length}>
+          Meals CSV
         </Button>
         <Button
           variant="ghost"

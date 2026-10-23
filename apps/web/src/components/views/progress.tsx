@@ -408,6 +408,48 @@ function DayDetail({ dayKey, totals, onClose }: { dayKey: string; totals: Totals
 
 /* ---------- weekly review ---------- */
 
+/**
+ * Plain-language patterns, shown only when there is enough data to mean something.
+ * Observations from the user's own log, not medical claims.
+ */
+function insightsFor(data: AppData): string[] {
+  const days = lastNDays(14).map((key) => ({ key, t: totalsFor(data, key) }));
+  const out: string[] = [];
+
+  // Sleep and mood: needs at least two nights on each side of 7 hours.
+  const both = days.filter((d) => d.t.checkin?.sleep !== undefined && d.t.checkin?.mood !== undefined);
+  const rested = both.filter((d) => d.t.checkin!.sleep! >= 7);
+  const short = both.filter((d) => d.t.checkin!.sleep! < 7);
+  if (both.length >= 5 && rested.length >= 2 && short.length >= 2) {
+    const avgMood = (xs: typeof both) => xs.reduce((s, d) => s + d.t.checkin!.mood!, 0) / xs.length;
+    const a = avgMood(rested);
+    const b = avgMood(short);
+    if (Math.abs(a - b) >= 0.4) out.push(`After 7+ hours of sleep your mood averages ${a.toFixed(1)}, versus ${b.toFixed(1)} on shorter nights.`);
+  }
+
+  // Protein, this week against last week: needs three logged days in each.
+  const week = (xs: typeof days) => xs.filter((d) => d.t.calories > 0);
+  const thisWeek = week(days.slice(7));
+  const lastWeek = week(days.slice(0, 7));
+  if (thisWeek.length >= 3 && lastWeek.length >= 3) {
+    const avg = (xs: typeof days) => xs.reduce((s, d) => s + d.t.protein, 0) / xs.length;
+    const change = Math.round(((avg(thisWeek) - avg(lastWeek)) / Math.max(1, avg(lastWeek))) * 100);
+    if (Math.abs(change) >= 10) out.push(`Protein is ${change > 0 ? "up" : "down"} ${Math.abs(change)}% on last week.`);
+  }
+
+  // Training rhythm: which weekday you train most, once there are a few sessions.
+  const trained = days.filter((d) => d.t.workout);
+  if (trained.length >= 3) {
+    const counts = new Map<string, number>();
+    for (const d of trained) counts.set(weekdayLong(d.key), (counts.get(weekdayLong(d.key)) ?? 0) + 1);
+    const [day, n] = [...counts.entries()].sort((x, y) => y[1] - x[1])[0];
+    if (n >= 2) out.push(`${day}s are your most consistent training day.`);
+    else out.push(`${trained.length} sessions in the last two weeks. Steady wins.`);
+  }
+
+  return out.slice(0, 3);
+}
+
 function WeeklyReview({ data }: { data: AppData }) {
   const r = useMemo(() => {
     const days = lastNDays(7).map((key) => ({ key, t: totalsFor(data, key) }));
@@ -426,7 +468,10 @@ function WeeklyReview({ data }: { data: AppData }) {
       protein: avg(ate.map((d) => d.t.protein)),
       sleep: avg(slept),
       water: days.reduce((s, d) => s + (d.t.checkin?.water ?? 0), 0),
-      best,
+      // A "best day" only means something once there are a few active days to compare.
+      best: days.filter((d) => isActive(d.t)).length >= 3 ? best : null,
+      activeNeeded: Math.max(0, 3 - days.filter((d) => isActive(d.t)).length),
+      insights: insightsFor(data),
     };
   }, [data]);
 
@@ -457,11 +502,22 @@ function WeeklyReview({ data }: { data: AppData }) {
           </motion.div>
         ))}
       </dl>
-      <div className="mt-auto pt-5">
+      <div className="mt-auto space-y-3 pt-5">
+        {r.insights.length ? (
+          <ul className="space-y-2" aria-label="Insights">
+            {r.insights.map((text) => (
+              <li key={text} className="rounded-[18px] bg-surface-2/70 px-4 py-3 text-sm leading-snug text-ink">
+                {text}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <div className="rounded-[22px] bg-moss-soft/60 px-4 py-3.5">
           <div className="eyebrow">Best day</div>
           <div className="mt-1.5 flex items-center justify-between gap-3">
-            <span className="truncate font-display text-xl">{r.best ? weekdayLong(r.best.key) : "—"}</span>
+            <span className="truncate font-display text-xl">
+              {r.best ? weekdayLong(r.best.key) : <span className="text-base text-ink-soft">Shows after {r.activeNeeded} more active day{r.activeNeeded === 1 ? "" : "s"}</span>}
+            </span>
             {r.best ? (
               <span className="flex shrink-0 items-center gap-1.5" aria-label={`${r.best.score} of 3 pillars`}>
                 {[r.best.t.calories > 0, r.best.t.workout, r.best.t.recovered].map((hit, j) => (

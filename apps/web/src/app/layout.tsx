@@ -9,7 +9,11 @@ const sans = localFont({ src: "./fonts/Manrope.woff2", variable: "--font-sans", 
 export const metadata: Metadata = {
   title: "Swasthya",
   description: "A calm space to eat well, move daily and recover deeply.",
-  icons: { icon: { url: "/brand/swasthya-lotus.svg", type: "image/svg+xml" } },
+  icons: {
+    icon: { url: "/brand/swasthya-lotus.svg", type: "image/svg+xml" },
+    apple: { url: "/brand/apple-touch-icon.png", sizes: "180x180" },
+  },
+  appleWebApp: { capable: true, title: "Swasthya", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

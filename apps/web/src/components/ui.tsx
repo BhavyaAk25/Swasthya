@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, type HTMLMotionProps, type Transition } from "framer-motion";
 import { X, type LucideIcon } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -99,32 +99,6 @@ export function Chip({
     >
       {children}
     </motion.button>
-  );
-}
-
-const tones = {
-  sage: "from-[#dfe7e1] via-[#cfdcd3] to-[#b8cbbf]",
-  clay: "from-[#f3e9de] via-[#ead8c6] to-[#dcc0a5]",
-  mist: "from-[#e6ecee] via-[#d6e0e4] to-[#c3d1d7]",
-  dusk: "from-[#e9e3ea] via-[#ddd3df] to-[#c9bccd]",
-};
-
-/** Image area that shows a calm gradient placeholder until (or if) the image fails to load. */
-export function ImageSlot({ src, alt = "", tone = "sage", className }: { src?: string | null; alt?: string; tone?: keyof typeof tones; className?: string }) {
-  const [failed, setFailed] = useState(false);
-  return (
-    <div className={cn("relative isolate overflow-hidden rounded-[28px] bg-gradient-to-br", tones[tone], className)}>
-      {src && !failed ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={alt} onError={() => setFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
-      ) : (
-        <>
-          <div className="absolute -left-1/4 top-1/4 h-3/4 w-3/4 rounded-full bg-white/30 blur-3xl" />
-          <div className="absolute -bottom-1/4 right-0 h-2/3 w-2/3 rounded-full bg-white/20 blur-2xl" />
-          <div className="grain absolute inset-0" />
-        </>
-      )}
-    </div>
   );
 }
 
@@ -262,10 +236,10 @@ export function Sheet({
 }
 
 /** Small toast for confirmations; auto-dismisses. */
-export function Toast({ message, onDone }: { message: { id: number; text: string } | null; onDone: () => void }) {
+export function Toast({ message, onDone }: { message: { id: number; text: string; undo?: () => void } | null; onDone: () => void }) {
   useEffect(() => {
     if (!message) return;
-    const t = setTimeout(onDone, 2600);
+    const t = setTimeout(onDone, message.undo ? 5000 : 2600);
     return () => clearTimeout(t);
   }, [message, onDone]);
 
@@ -279,9 +253,22 @@ export function Toast({ message, onDone }: { message: { id: number; text: string
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={calm}
-            className="rounded-full bg-ink px-5 py-3 text-sm font-medium text-white shadow-[var(--shadow-md)]"
+            role="status"
+            className="flex items-center gap-4 rounded-full bg-ink py-3 pl-5 pr-5 text-sm font-medium text-white shadow-[var(--shadow-md)]"
           >
             {message.text}
+            {message.undo ? (
+              <button
+                type="button"
+                onClick={() => {
+                  message.undo?.();
+                  onDone();
+                }}
+                className="pointer-events-auto -my-1 rounded-full px-3 py-1 font-semibold text-sage hover:bg-white/10"
+              >
+                Undo
+              </button>
+            ) : null}
           </motion.div>
         ) : null}
       </AnimatePresence>

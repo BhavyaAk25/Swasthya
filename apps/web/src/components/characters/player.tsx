@@ -112,8 +112,10 @@ export function CharacterPlayer({
     const surface = canvas.current;
     const ctx = surface?.getContext("2d");
     if (!blendPlate || !surface || !ctx) return;
-    const backdrop = backdropOf(host.current?.parentElement ?? null);
+    let backdrop = backdropOf(host.current?.parentElement ?? null);
+    let last: [CanvasImageSource, number, number] | null = null;
     const paint = (source: CanvasImageSource, width: number, height: number) => {
+      last = [source, width, height];
       if (surface.width !== width) surface.width = width;
       if (surface.height !== height) surface.height = height;
       ctx.globalCompositeOperation = "source-over";
@@ -124,6 +126,12 @@ export function CharacterPlayer({
       ctx.globalCompositeOperation = "source-over";
       setPainted(true);
     };
+    // Evening tones change the page colour: repaint at once so the plate keeps matching it.
+    const theme = new MutationObserver(() => {
+      backdrop = backdropOf(host.current?.parentElement ?? null);
+      if (last) paint(...last);
+    });
+    theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-mode"] });
 
     const element = player.current;
     if (displayVideo && element) {
@@ -131,7 +139,7 @@ export function CharacterPlayer({
         if (element.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && element.videoWidth) paint(element, element.videoWidth, element.videoHeight);
       };
       draw();
-      if (!running || !playing) return;
+      if (!running || !playing) return () => theme.disconnect();
       // Paint each decoded frame exactly once; animation frames are the fallback.
       if (typeof element.requestVideoFrameCallback === "function") {
         let id = 0;
@@ -140,7 +148,10 @@ export function CharacterPlayer({
           id = element.requestVideoFrameCallback(onFrame);
         };
         id = element.requestVideoFrameCallback(onFrame);
-        return () => element.cancelVideoFrameCallback(id);
+        return () => {
+          theme.disconnect();
+          element.cancelVideoFrameCallback(id);
+        };
       }
       let id = 0;
       const loop = () => {
@@ -148,7 +159,10 @@ export function CharacterPlayer({
         id = requestAnimationFrame(loop);
       };
       id = requestAnimationFrame(loop);
-      return () => cancelAnimationFrame(id);
+      return () => {
+        theme.disconnect();
+        cancelAnimationFrame(id);
+      };
     }
 
     // Still artwork: paint once loaded (the last video frame stays until then, so no flash).
@@ -158,6 +172,7 @@ export function CharacterPlayer({
     image.src = poster;
     return () => {
       live = false;
+      theme.disconnect();
     };
   }, [blendPlate, displayVideo, running, playing, poster]);
 

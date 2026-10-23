@@ -23,8 +23,10 @@ export function targetPhrase(step: Pick<Step, "kind" | "reps" | "perSide" | "sec
   return step.perSide ? `${step.reps} each side.` : `${step.reps} reps.`;
 }
 
-export function workCue(step: Step): string[] {
-  return [`${step.name}.`, `Set ${step.set} of ${step.totalSets}.`, targetPhrase(step)];
+/** Name, set and target; on the first set, also the move's key form cue (lib/form.ts). */
+export function workCue(step: Step, formCue?: string): string[] {
+  const parts = [`${step.name}.`, `Set ${step.set} of ${step.totalSets}.`, targetPhrase(step)];
+  return step.set === 1 && formCue ? [...parts, formCue] : parts;
 }
 
 export function restCue(next: Step): string[] {

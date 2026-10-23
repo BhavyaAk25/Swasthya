@@ -12,6 +12,10 @@ export interface Profile {
   calorieTarget: number;
   proteinTarget: number;
   createdAt: string;
+  /** Notify at wind-down time while the app is open in a background tab. */
+  reminders?: boolean;
+  /** Warmer, dimmer palette after wind-down time (default on). */
+  eveningTones?: boolean;
 }
 
 export interface Meal {
@@ -25,6 +29,7 @@ export interface Meal {
   confidence: Confidence;
   source: "photo" | "text" | "quick";
   photo?: string; // small JPEG data URL
+  portion?: number; // multiplier applied after logging (default 1)
 }
 
 export interface Exercise {
