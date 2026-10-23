@@ -118,11 +118,14 @@ export function CharacterPlayer({
       last = [source, width, height];
       if (surface.width !== width) surface.width = width;
       if (surface.height !== height) surface.height = height;
+      // Draw the artwork, then multiply the backdrop over it (same result as backdrop × artwork).
+      // This order matters: Safari/WebKit ignores the composite mode when drawing a <video> frame,
+      // but always honours it for fillRect.
       ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(source, 0, 0, width, height);
+      ctx.globalCompositeOperation = "multiply";
       ctx.fillStyle = backdrop;
       ctx.fillRect(0, 0, width, height);
-      ctx.globalCompositeOperation = "multiply";
-      ctx.drawImage(source, 0, 0, width, height);
       ctx.globalCompositeOperation = "source-over";
       setPainted(true);
     };

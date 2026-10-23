@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-10-23: Safari fix
+- Safari showed a white box behind every moving character (exercise demos, rest scene, a tapped friend). WebKit ignores the canvas blend mode when drawing a video frame, so the player now draws the frame first and multiplies the page colour over it with `fillRect`, which every browser honours. Verified in WebKit and Chrome.
+
 ## 2026-10-23: Polish pass
 ### Looks
 - Every exercise and rest scene now stands directly on its panel, with no white or beige box: all clips were whitened (`scripts/media/normalize_plate.py`) and render through the canvas plate on flat stage colours.
