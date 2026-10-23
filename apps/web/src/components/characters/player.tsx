@@ -3,6 +3,7 @@
 import { useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 
+import { STAGES, type Stage } from "@/lib/stages";
 import { cn } from "@/lib/utils";
 
 const subscribeVisibility = (notify: () => void) => {
@@ -113,6 +114,35 @@ export function CharacterPlayer({
     const ctx = surface?.getContext("2d");
     if (!blendPlate || !surface || !ctx) return;
     let backdrop = backdropOf(host.current?.parentElement ?? null);
+    const stageEl = host.current?.closest<HTMLElement>("[data-stage]") ?? null;
+    const stage: Stage | null = stageEl ? (STAGES as Record<string, Stage>)[stageEl.dataset.stage ?? ""] ?? null : null;
+
+    /** Fill the canvas with what is behind it: the panel's gradient at this exact spot, or a flat colour. */
+    const fillBackdrop = (width: number, height: number) => {
+      const box = surface.getBoundingClientRect();
+      if (!stage || !stageEl || box.width === 0) {
+        ctx.fillStyle = backdrop;
+        ctx.fillRect(0, 0, width, height);
+        return;
+      }
+      const panel = stageEl.getBoundingClientRect();
+      const k = width / box.width; // CSS px -> canvas px
+      const left = panel.left + stageEl.clientLeft;
+      const top = panel.top + stageEl.clientTop;
+      const cx = (left + stage.cx * stageEl.clientWidth - box.left) * k;
+      const cy = (top + stage.cy * stageEl.clientHeight - box.top) * k;
+      const rx = stage.rx * stageEl.clientWidth * k;
+      const ry = stage.ry * stageEl.clientHeight * k;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(1, ry / rx); // a CSS ellipse is a vertically scaled circle
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+      for (const [at, color] of stage.stops) gradient.addColorStop(at, color);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(-cx, (-cy * rx) / ry, width, (height * rx) / ry);
+      ctx.restore();
+    };
+
     let last: [CanvasImageSource, number, number] | null = null;
     const paint = (source: CanvasImageSource, width: number, height: number) => {
       last = [source, width, height];
@@ -124,8 +154,7 @@ export function CharacterPlayer({
       ctx.globalCompositeOperation = "source-over";
       ctx.drawImage(source, 0, 0, width, height);
       ctx.globalCompositeOperation = "multiply";
-      ctx.fillStyle = backdrop;
-      ctx.fillRect(0, 0, width, height);
+      fillBackdrop(width, height);
       ctx.globalCompositeOperation = "source-over";
       setPainted(true);
     };
@@ -135,6 +164,14 @@ export function CharacterPlayer({
       if (last) paint(...last);
     });
     theme.observe(document.documentElement, { attributes: true, attributeFilter: ["data-mode"] });
+    // A gradient depends on where the canvas sits in its panel: repaint when either resizes.
+    const resize = new ResizeObserver(() => last && paint(...last));
+    if (stageEl) resize.observe(stageEl);
+    resize.observe(surface);
+    const stop = () => {
+      theme.disconnect();
+      resize.disconnect();
+    };
 
     const element = player.current;
     if (displayVideo && element) {
@@ -142,7 +179,7 @@ export function CharacterPlayer({
         if (element.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && element.videoWidth) paint(element, element.videoWidth, element.videoHeight);
       };
       draw();
-      if (!running || !playing) return () => theme.disconnect();
+      if (!running || !playing) return stop;
       // Paint each decoded frame exactly once; animation frames are the fallback.
       if (typeof element.requestVideoFrameCallback === "function") {
         let id = 0;
@@ -152,7 +189,7 @@ export function CharacterPlayer({
         };
         id = element.requestVideoFrameCallback(onFrame);
         return () => {
-          theme.disconnect();
+          stop();
           element.cancelVideoFrameCallback(id);
         };
       }
@@ -163,7 +200,7 @@ export function CharacterPlayer({
       };
       id = requestAnimationFrame(loop);
       return () => {
-        theme.disconnect();
+        stop();
         cancelAnimationFrame(id);
       };
     }
@@ -175,7 +212,7 @@ export function CharacterPlayer({
     image.src = poster;
     return () => {
       live = false;
-      theme.disconnect();
+      stop();
     };
   }, [blendPlate, displayVideo, running, playing, poster]);
 

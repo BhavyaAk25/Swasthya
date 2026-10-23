@@ -4,9 +4,6 @@
   --bg: #f4f1ea;
   --surface: #fbfaf6;
   --surface-2: #efebe2;
-  /* Flat stages behind the illustrated friends (their media is multiplied onto these exactly). */
-  --stage-sage: #edf0ea;
-  --stage-dusk: #ece8ee;
   --ink: #1d2723;
   --ink-soft: #5d6963;
   --ink-faint: #929b95;
@@ -26,8 +23,6 @@
   --bg: #eee7dc;
   --surface: #f6f0e6;
   --surface-2: #e7dfd1;
-  --stage-sage: #e5e7dd;
-  --stage-dusk: #e6dfe3;
   --moss-soft: #d9e1d6;
   --clay-soft: #ecdcc9;
 }
@@ -36,8 +31,6 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
-  --color-stage-sage: var(--stage-sage);
-  --color-stage-dusk: var(--stage-dusk);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);

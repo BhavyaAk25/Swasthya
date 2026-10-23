@@ -13,6 +13,7 @@ import { stepsFor } from "@/lib/recovery";
 import { actions } from "@/lib/store";
 import { cancelVoice, prefetchVoice, say, voiceSupported } from "@/lib/voice";
 import { FIXED, nidraParts } from "@/lib/voice-phrases";
+import { stageStyle } from "@/lib/stages";
 
 export function RecoverySession({
   open,
@@ -145,7 +146,7 @@ function Guided({ minutes, played, onFinish }: { minutes: number; played: React.
 
   return (
     <div className="flex flex-col items-center pb-2 pt-1 text-center">
-      <div className="relative w-full overflow-hidden rounded-[24px] border border-line bg-stage-dusk">
+      <div data-stage="dusk" style={stageStyle("dusk")} className="relative w-full overflow-hidden rounded-[24px] border border-line">
         <RestoreScene cycle={elapsed % 10} playing={playing} className="h-[300px] w-full sm:h-[340px]" />
       </div>
       <div className="mt-4 w-full">

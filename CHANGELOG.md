@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-10-23: Gradient stages back
+- The light dusk-purple gradient behind yoga nidra and the soft sage gradient behind exercises are restored (Restore, Move, the workout player and the nidra session). `lib/stages.ts` defines each gradient once; the panel's CSS and the character canvas both use it, so the characters still sit on the gradient with no box (checked pixel by pixel in WebKit and Chromium).
+
 ## 2026-10-23: Safari fix
 - Safari showed a white box behind every moving character (exercise demos, rest scene, a tapped friend). WebKit ignores the canvas blend mode when drawing a video frame, so the player now draws the frame first and multiplies the page colour over it with `fillRect`, which every browser honours. Verified in WebKit and Chrome.
 

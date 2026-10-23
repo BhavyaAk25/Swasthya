@@ -10,6 +10,7 @@ import { Bar, Button, calm, Card, Chip } from "@/components/ui";
 import { CONSTRAINTS, weekFor } from "@/lib/plan";
 import { FORM } from "@/lib/form";
 import { actions, todayOf } from "@/lib/store";
+import { stageStyle } from "@/lib/stages";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -58,7 +59,7 @@ export function MoveView() {
       </header>
 
       {/* Illustrated demonstration of the selected move */}
-      <section className="relative overflow-hidden rounded-[32px] border border-line bg-stage-sage">
+      <section data-stage="sage" style={stageStyle("sage")} className="relative overflow-hidden rounded-[32px] border border-line">
         <ExerciseDemoScene exerciseId={selected.id} active={!covered} className="h-[300px] w-full sm:h-[380px] lg:h-[440px]" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 sm:p-6">
           <AnimatePresence mode="wait" initial={false}>

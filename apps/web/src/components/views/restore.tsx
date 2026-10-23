@@ -9,6 +9,7 @@ import { RestoreScene } from "@/components/three";
 import { LENGTHS } from "@/lib/recovery";
 import { actions, todayOf } from "@/lib/store";
 import { countdown, formatClock, lastNDays, nextAt, weekdayShort, whenLabel } from "@/lib/utils";
+import { stageStyle } from "@/lib/stages";
 
 export function RestoreView() {
   const { data, open, ai, toast, covered } = useApp();
@@ -26,7 +27,7 @@ export function RestoreView() {
         <h1 className="mt-2 font-display text-4xl font-light sm:text-5xl">Rest is training too</h1>
       </header>
 
-      <section className="relative overflow-hidden rounded-[32px] border border-line bg-stage-dusk">
+      <section data-stage="dusk" style={stageStyle("dusk")} className="relative overflow-hidden rounded-[32px] border border-line">
         <div className="grid [&>*]:min-w-0 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
           <div className="h-[340px] sm:h-[400px] lg:order-2 lg:h-[500px]">
             <RestoreScene active={!covered} className="h-full w-full" />

@@ -9,6 +9,7 @@ import { ExerciseDemoScene } from "@/components/three";
 import { Bar, Button, calm, IconButton, Ring, Sheet } from "@/components/ui";
 import { actions, todayOf } from "@/lib/store";
 import type { Session } from "@/lib/types";
+import { stageStyle } from "@/lib/stages";
 import { cn, haptic } from "@/lib/utils";
 import { buildSteps, clock, completedExercises, restBefore, type Step } from "@/lib/workout";
 import { cancelVoice, prefetchVoice, say, voiceSupported } from "@/lib/voice";
@@ -284,7 +285,7 @@ function Player({
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         className="overflow-hidden"
       >
-        <div className="mb-5 overflow-hidden rounded-[24px] border border-line bg-stage-sage">
+        <div data-stage="sage" style={stageStyle("sage")} className="mb-5 overflow-hidden rounded-[24px] border border-line">
           <ExerciseDemoScene
             exerciseId={(phase === "ready" ? steps[0] : step).exerciseId}
             playing={phase === "ready" || (phase === "work" && !paused)}
